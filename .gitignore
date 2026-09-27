@@ -4,6 +4,7 @@
 /BOOT-INF/
 /META-INF/
 /org/
+cloudflared.exe
 .DS_Store
 .idea/
 *.iml
