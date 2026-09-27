@@ -1,9 +1,12 @@
 # 🎯 InterviewPrep AI — Mock Interview & AI Proctoring Platform
 
+[![Live Application](https://img.shields.io/badge/Live%20App-interviewprepai--98uz.onrender.com-brightgreen.svg)](https://interviewprepai-98uz.onrender.com/login)
 [![Java](https://img.shields.io/badge/Java-17-orange.svg)](https://www.oracle.com/java/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Security](https://img.shields.io/badge/Security-IDOR%20Protected-blue.svg)](#security--data-isolation)
 [![Proctoring](https://img.shields.io/badge/Proctoring-AI%20Facial%20%26%20Fullscreen-red.svg)](#-ai-proctoring-engine)
+
+🌐 **Live Production Website**: [https://interviewprepai-98uz.onrender.com/login](https://interviewprepai-98uz.onrender.com/login)
 
 **InterviewPrep AI** is an intelligent, full-stack mock interview platform powered by AI. It delivers personalized technical interviews, real-time audio/voice evaluation, automated answer scoring, comprehensive proctoring analytics, and an ATS Resume Analyzer.
 
@@ -44,7 +47,14 @@ A single endpoint (`/api/chat`) operating across three distinct modes:
 - **Backend**: Java 17, Spring Boot 3.2.5, Spring Security, Spring Data JPA, Hibernate, H2 Database, Flyway Migrations, Maven.
 - **Frontend**: Thymeleaf Templates, Vanilla CSS3 with Custom Properties, Dual Light/Dark Theme, Client-side ES6 JS, Web Speech API (Voice Recognition & Speech Synthesis).
 - **AI Integration**: Spring AI Service for multi-criteria answer evaluation and question generation.
-- **Containerization**: Docker, Docker Compose, Render / Railway Ready.
+- **Deployment**: Docker, Render Cloud Deployment (24/7 Available).
+
+---
+
+## 🌐 Live Production URL
+
+The application is deployed live 24/7 on Render:
+👉 **[https://interviewprepai-98uz.onrender.com/login](https://interviewprepai-98uz.onrender.com/login)**
 
 ---
 
@@ -70,9 +80,8 @@ Access the application at `http://localhost:8080`.
 
 ---
 
-## 🐳 Docker & Cloud Deployment
+## 🐳 Docker Container Execution
 
-### Docker Deployment
 ```bash
 # Build Docker Image
 docker build -t interviewprep-ai .
@@ -81,14 +90,9 @@ docker build -t interviewprep-ai .
 docker run -p 8080:8080 interviewprep-ai
 ```
 
-### ☁️ 1-Click Render.com Deployment
-1. Connect this GitHub repository (`mallacharmi/InterviewPrepAI`) to [Render.com](https://render.com).
-2. Render automatically detects `Dockerfile` and `render.yaml`.
-3. Deploy to get a permanent 24/7 HTTPS URL (e.g. `https://interviewprep-ai.onrender.com`).
-
 ---
 
-## 🧪 Verification & Testing
+## 🧪 Verification & Security Audit
 
 Run the included automated verification scripts:
 ```bash
