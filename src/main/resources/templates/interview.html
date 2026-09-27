@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Proctored AI Interview')}"></head>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+<body>
+    <div th:replace="~{layout :: nav}"></div>
+    
+    <!-- Fullscreen & Proctoring Start Overlay -->
+    <div id="proctor-start-overlay" class="proctor-overlay" th:unless="${interview != null and interview.status == 'COMPLETED'}">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 1.25rem; padding: 2rem 2.25rem; max-width: 600px; width: 94%; box-shadow: 0 20px 60px rgba(0,0,0,0.5); backdrop-filter: blur(12px);">
+            <div class="text-center mb-4">
+                <div id="proctor-overlay-icon" style="font-size: 2.8rem; margin-bottom: 0.35rem;">🚀</div>
+                <h2 id="proctor-overlay-title" style="color: var(--text); font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.35rem;">Proctored AI Assessment</h2>
+                <p id="proctor-overlay-desc" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+                    Click below to enter fullscreen and launch your proctored interview session.
+                </p>
+            </div>
+
+            <!-- Proctoring Rules Reminder -->
+            <div id="proctor-overlay-warning" style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 0.85rem 1.1rem; margin-bottom: 1.5rem; font-size: 0.82rem; color: var(--text); display: flex; flex-direction: column; gap: 0.45rem;">
+                <div>🎥 <strong>AI Proctoring:</strong> Monitors camera, microphone, device environment & expressions</div>
+                <div>🚨 <strong>Anti-Cheat:</strong> Tab switching or leaving the assessment window logs proctoring violations</div>
+            </div>
+
+            <!-- Executive Launch Button -->
+            <button id="enable-proctoring-btn" class="btn btn-primary btn-block" style="font-size: 1.05rem; padding: 0.85rem 1.5rem; font-weight: 700; border-radius: 10px; cursor: pointer; background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%); width: 100%;" onclick="initializeProctoringSession()">
+                🚀 Enter Fullscreen & Begin Assessment →
+            </button>
+        </div>
+    </div>
+
+    <!-- Floating WebCam PiP Feed -->
+    <div class="proctor-pip" id="proctor-pip-box" style="display: none;">
+        <div class="proctor-status">
+            <span style="display:inline-block; width:8px; height:8px; background:#10b981; border-radius:50%;"></span> AI Scanner Active
+        </div>
+        <video id="webcam-stream" autoplay muted playsinline></video>
+        <div id="pip-device-status" style="font-size: 0.72rem; font-weight: 600; color: #38bdf8; text-align: center; margin-top: 4px; background: rgba(15, 23, 42, 0.9); padding: 3px 6px; border-radius: 4px; border: 1px solid rgba(56, 189, 248, 0.3);">
+            📱 AI Detector: Monitoring (Mobile / Earphone / Camera / Multiple Persons)
+        </div>
+        <div id="pip-expression-status" style="font-size: 0.72rem; font-weight: 700; color: #10b981; text-align: center; margin-top: 4px; background: rgba(16, 185, 129, 0.15); padding: 4px 6px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3); display: flex; justify-content: space-between; align-items: center;">
+            <span>🎭 Live Expression: <strong id="current-expression-label" style="color: #10b981;">Confident</strong></span>
+            <span id="current-expression-pct" style="color: #6ee7b7; font-size: 0.7rem;">(82%)</span>
+        </div>
+        <div class="audio-meter-bar" id="audio-meter"></div>
+    </div>
+
+    <main class="container my-4" style="max-width: 850px;">
+        <div id="alert-box" class="alert hidden mb-4"></div>
+
+        <!-- Proctoring Status Bar -->
+        <div th:unless="${interview != null and interview.status == 'COMPLETED'}" style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.75rem 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 600;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; color: var(--primary); flex-wrap: wrap;">
+                <span>🛡️ AI Proctoring Active</span>
+                <span>•</span>
+                <span>🎥 Device Scanner Active</span>
+                <span>•</span>
+                <span style="color: var(--success);">🎭 Facial Expression Analysis Active</span>
+            </div>
+            <div style="color: var(--warning); background: var(--warning-light); padding: 0.25rem 0.75rem; border-radius: 20px; border: 1px solid rgba(245, 158, 11, 0.3);">
+                ⚠️ Violations: <span id="violation-count">0</span> / 3 (Auto-ends at 3)
+            </div>
+        </div>
+        
+        <div th:if="${interview != null and interview.status == 'COMPLETED'}" class="alert alert-info">
+            This interview is already completed. <a th:href="@{/interviews/{id}/report(id=${interview.id})}">View Detailed Performance Report</a>
+        </div>
+        
+        <div th:unless="${interview != null and interview.status == 'COMPLETED'}">
+            <!-- Header info -->
+            <div class="flex justify-between align-center mb-2">
+                <div class="text-muted">
+                    <span th:text="${interview != null ? interview.targetRole : 'Java Developer'}">Role</span> | <span th:text="${interview != null ? (interview.interviewType == 'TECHNICAL' ? 'Technical' : (interview.interviewType == 'HR' ? 'HR' : (interview.interviewType == 'MIXED' ? 'Technical + HR' : interview.interviewType))) : 'Technical'}">Type</span>
+                </div>
+                <div>
+                    <span id="progress-text" class="text-muted" th:text="'Question ' + ${currentQuestionNumber != null ? currentQuestionNumber : 1} + ' of ' + ${interview != null ? interview.totalQuestions : 5}">Question 1 of 5</span>
+                </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="progress mb-4">
+                <div id="interview-progress" class="progress-bar" th:style="'width: ' + (${currentQuestionNumber != null ? currentQuestionNumber : 1} * 100 / ${interview != null ? interview.totalQuestions : 5}) + '%'"></div>
+            </div>
+            
+            <!-- Question Container -->
+            <div class="card" id="question-card">
+                <div id="question-container">
+                    <div class="flex justify-between align-center mb-4">
+                        <div class="badge badge-topic" th:text="${currentQuestion != null ? currentQuestion.topic : 'General'}">Topic</div>
+                        <div class="badge" th:classappend="${currentQuestion != null ? 'badge-' + currentQuestion.difficulty.toLowerCase() : 'badge-medium'}" th:text="${currentQuestion != null ? currentQuestion.difficulty : 'MEDIUM'}">Difficulty</div>
+                    </div>
+                    
+                    <div th:if="${currentQuestion != null and currentQuestion.isFollowUp}" class="badge badge-info mb-2">Follow-up Question</div>
+                    
+                    <h3 class="mb-4" th:text="${currentQuestion != null ? currentQuestion.questionText : 'Loading interview question...'}">Question Text</h3>
+                </div>
+                
+                <!-- Answer Section -->
+                <div id="answer-section">
+                    <div class="form-group">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                            <label for="answer-input" class="form-label" style="margin-bottom: 0;">Your Answer</label>
+                            <button id="voice-answer-btn" type="button" class="btn btn-secondary" onclick="toggleVoiceRecognition()" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.85rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                                <span id="voice-icon">🎙️</span> <span id="voice-btn-text">Speak Answer</span>
+                            </button>
+                        </div>
+                        <div id="voice-status-banner" style="display: none; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 0.4rem; padding: 0.45rem 0.75rem; margin-bottom: 0.5rem; font-size: 0.85rem; color: #818cf8; align-items: center; gap: 0.5rem;">
+                            <span style="display: inline-block; width: 10px; height: 10px; background: #ef4444; border-radius: 50%; box-shadow: 0 0 8px #ef4444;"></span>
+                            <span id="voice-status-text">Listening to your voice... Speak your response clearly!</span>
+                        </div>
+                        <textarea id="answer-input" class="form-control" rows="6" placeholder="Type your technical response here, or click 'Speak Answer' to dictate your answer..." autofocus></textarea>
+                    </div>
+                    <button id="submit-answer-btn" class="btn btn-primary" th:onclick="'submitAnswer(' + ${interview != null ? interview.id : 0} + ')'">Submit Answer</button>
+                </div>
+                
+                <!-- Evaluation Section (Hidden initially) -->
+                <div id="evaluation-section" class="hidden mt-4" style="border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                    <div id="evaluation-content">
+                        <!-- Filled by JS -->
+                    </div>
+                    <div id="evaluation-actions" class="mt-4 text-right">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <div th:replace="~{layout :: footer}"></div>
+    
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        window.interviewId = /*[[${interview != null ? interview.id : null}]]*/ null;
+        window.currentQuestionId = /*[[${currentQuestion != null ? currentQuestion.id : null}]]*/ null;
+        window.totalQuestionsCount = /*[[${interview != null ? interview.totalQuestions : 5}]]*/ 5;
+        window.isLastQuestion = /*[[${currentQuestionNumber != null and interview != null ? currentQuestionNumber >= interview.totalQuestions : false}]]*/ false;
+        window.userProfilePhoto = /*[[${user != null ? user.profilePhoto : null}]]*/ null;
+        window.userName = /*[[${user != null ? user.name : 'Candidate'}]]*/ 'Candidate';
+        
+        let isFaceVerified = false;
+        let verificationStream = null;
+
+        // Auto-initialize camera for face verification if overlay is active
+        document.addEventListener('DOMContentLoaded', () => {
+            const overlay = document.getElementById('proctor-start-overlay');
+            if (overlay && overlay.style.display !== 'none') {
+                setTimeout(() => {
+                    startVerificationCamera();
+                }, 500);
+            }
+        });
+
+        async function startVerificationCamera() {
+            const video = document.getElementById('verifyLiveVideo');
+            const dot = document.getElementById('camStatusDot');
+            const btn = document.getElementById('startVerifyCamBtn');
+            const statusTitle = document.getElementById('faceMatchStatusTitle');
+            const feedback = document.getElementById('faceMatchFeedback');
+
+            if (dot) dot.innerHTML = '<span style="width: 7px; height: 7px; background: #38bdf8; border-radius: 50%;"></span> Connecting...';
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = '⏳ Starting Camera...';
+            }
+
+            try {
+                if (!mediaStream) {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+                        audio: true
+                    });
+                }
+                verificationStream = mediaStream;
+                if (video) {
+                    video.srcObject = mediaStream;
+                }
+
+                if (dot) dot.innerHTML = '<span style="width: 7px; height: 7px; background: #10b981; border-radius: 50%;"></span> Active';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '🔄 Re-Scan Face';
+                }
+
+                if (statusTitle) statusTitle.innerHTML = '<span>🔍</span> Scanning Face & Comparing with ID...';
+                if (feedback) feedback.textContent = 'Camera active. Analyzing facial features against registered ID photo...';
+
+                // Allow 1.2s for camera auto-exposure to stabilize before capture
+                setTimeout(() => {
+                    captureAndVerifyFace();
+                }, 1200);
+
+            } catch (err) {
+                console.error('Camera verification error:', err);
+                if (dot) dot.innerHTML = '<span style="width: 7px; height: 7px; background: #ef4444; border-radius: 50%;"></span> Denied';
+                if (statusTitle) statusTitle.innerHTML = '<span style="color: #ef4444;">⚠️ Camera Access Required</span>';
+                if (feedback) feedback.innerHTML = '<span style="color: #ef4444;">Camera permission is required to verify your face. Please allow camera access in your browser and click "Start Camera & Match".</span>';
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '📷 Retry Camera';
+                }
+            }
+        }
+
+        async function captureAndVerifyFace() {
+            const video = document.getElementById('verifyLiveVideo');
+            if (!video || !video.videoWidth) {
+                setTimeout(captureAndVerifyFace, 500);
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 320;
+            canvas.height = 320;
+            const ctx = canvas.getContext('2d');
+
+            const minDim = Math.min(video.videoWidth, video.videoHeight);
+            const sx = (video.videoWidth - minDim) / 2;
+            const sy = (video.videoHeight - minDim) / 2;
+            ctx.drawImage(video, sx, sy, minDim, minDim, 0, 0, 320, 320);
+
+            const liveBase64 = canvas.toDataURL('image/jpeg', 0.88);
+
+            try {
+                const response = await apiCall('/api/users/me/verify-face', 'POST', { liveImage: liveBase64 });
+                handleFaceVerificationResult(response);
+            } catch (err) {
+                console.error('Verification API error:', err);
+                handleFaceVerificationResult({
+                    matched: false,
+                    similarityScore: 0.0,
+                    message: 'Could not connect to face verification service: ' + err.message
+                });
+            }
+        }
+
+        function handleFaceVerificationResult(result) {
+            const statusTitle = document.getElementById('faceMatchStatusTitle');
+            const scorePct = document.getElementById('faceMatchScorePct');
+            const progressBar = document.getElementById('faceMatchProgressBar');
+            const feedback = document.getElementById('faceMatchFeedback');
+            const launchBtn = document.getElementById('enable-proctoring-btn');
+            const liveCamCircle = document.getElementById('liveCamCircle');
+
+            const score = result.similarityScore || 0;
+            const isVerified = result.matched && score >= 90.0;
+
+            if (isVerified) {
+                isFaceVerified = true;
+                if (statusTitle) {
+                    statusTitle.innerHTML = '<span style="color: #10b981;">✅ Identity Confirmed (Match: ' + score + '% &ge; 90%)</span>';
+                }
+                if (scorePct) {
+                    scorePct.style.color = '#10b981';
+                    scorePct.textContent = score + '% (Verified)';
+                }
+                if (progressBar) {
+                    progressBar.style.width = Math.min(100, Math.max(score, 90)) + '%';
+                    progressBar.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+                }
+                if (feedback) {
+                    feedback.innerHTML = '<strong style="color: #10b981;">Identity Verified!</strong> Candidate face matches registered profile (' + score + '% &ge; 90% threshold). You may now begin the assessment.';
+                }
+                if (liveCamCircle) {
+                    liveCamCircle.style.borderColor = '#10b981';
+                    liveCamCircle.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.4)';
+                }
+                if (launchBtn) {
+                    launchBtn.disabled = false;
+                    launchBtn.style.opacity = '1';
+                    launchBtn.style.cursor = 'pointer';
+                    launchBtn.style.background = 'linear-gradient(180deg, #10b981 0%, #059669 100%)';
+                    launchBtn.style.borderColor = '#047857';
+                    launchBtn.style.boxShadow = '0 4px 18px rgba(16, 185, 129, 0.45)';
+                    launchBtn.innerHTML = '🚀 Face Verified (' + score + '%) — Enter Fullscreen & Begin Assessment →';
+                }
+            } else {
+                isFaceVerified = false;
+                if (statusTitle) {
+                    statusTitle.innerHTML = '<span style="color: #ef4444;">❌ Identity Mismatch (' + score + '% &lt; 90% Required)</span>';
+                }
+                if (scorePct) {
+                    scorePct.style.color = '#ef4444';
+                    scorePct.textContent = score + '% / 90% Required';
+                }
+                if (progressBar) {
+                    progressBar.style.width = Math.min(88, Math.max(10, score)) + '%';
+                    progressBar.style.background = '#ef4444';
+                }
+                if (feedback) {
+                    feedback.innerHTML = '<span style="color: #ef4444;">' + (result.message || ('Match score is ' + score + '%. The interview strictly requires a 90.0% match with the registered ID photo.')) + '</span><br><span style="color: #94a3b8; font-size: 0.74rem; margin-top: 4px; display: inline-block;">💡 <strong>Tip:</strong> Center your face in the oval guide. If your lighting, camera, or glasses have changed, click <strong>"📸 Update ID Photo"</strong> above to refresh your reference image.</span>';
+                }
+                if (liveCamCircle) {
+                    liveCamCircle.style.borderColor = '#ef4444';
+                    liveCamCircle.style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.3)';
+                }
+                if (launchBtn) {
+                    launchBtn.disabled = true;
+                    launchBtn.style.opacity = '0.6';
+                    launchBtn.style.cursor = 'not-allowed';
+                    launchBtn.style.background = '';
+                    launchBtn.innerHTML = '🔒 ' + (score > 0 ? (score + '% Match — Below 90% Required Threshold') : '90% Face Match Required to Unlock Interview');
+                }
+            }
+        }
+
+        async function snapReferencePhotoForUser() {
+            const video = document.getElementById('verifyLiveVideo');
+            if (!video || !video.videoWidth) {
+                alert('Please click "Start Camera & Match" first to enable your webcam.');
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 300;
+            canvas.height = 300;
+            const ctx = canvas.getContext('2d');
+            const minDim = Math.min(video.videoWidth, video.videoHeight);
+            const sx = (video.videoWidth - minDim) / 2;
+            const sy = (video.videoHeight - minDim) / 2;
+            ctx.drawImage(video, sx, sy, minDim, minDim, 0, 0, 300, 300);
+
+            const base64 = canvas.toDataURL('image/jpeg', 0.88);
+            try {
+                await apiCall('/api/users/me', 'PUT', { profilePhoto: base64 });
+                const img = document.getElementById('verifyRegPhotoImg');
+                const placeholder = document.getElementById('verifyRegPhotoPlaceholder');
+                if (img) {
+                    img.src = base64;
+                    img.style.display = 'block';
+                }
+                if (placeholder) placeholder.style.display = 'none';
+                window.userProfilePhoto = base64;
+                captureAndVerifyFace();
+            } catch (err) {
+                alert('Could not save reference photo: ' + err.message);
+            }
+        }
+
+        if (!window.currentQuestionId && window.interviewId && /*[[${interview != null and interview.status != 'COMPLETED'}]]*/ false) {
+            loadCurrentQuestion(window.interviewId);
+        }
+        /*]]>*/
+    </script>
+</body>
+</html>

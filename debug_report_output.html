@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assessment Report Card - InterviewPrep AI</title>
+    <meta name="_csrf" content="r8eYNvHkAMEoCuutOmVytgDJCH9QAfNH3KvHDtGBPRdp90d9lvSgVJPWOPkFOY2ZCUhG0jL4JUZgYJFq75j-Oue0XC9axXJL"/>
+    <meta name="_csrf_header" content="X-CSRF-TOKEN"/>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+    <div class="container">
+        <a href="/" class="navbar-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            InterviewPrep AI
+        </a>
+        <div class="navbar-nav">
+            <a href="/dashboard" class="nav-link" data-nav="dashboard">Dashboard</a>
+            <a href="/interviews/new" class="nav-link" data-nav="new-interview">New Interview</a>
+            <a href="/ats" class="nav-link" data-nav="ats">ATS Analyzer</a>
+            <a href="/interviews/history" class="nav-link" data-nav="history">History</a>
+            <a href="/profile" class="nav-link" data-nav="profile">Profile</a>
+            <div class="flex align-center gap-3 ml-4">
+                <a href="/profile" class="nav-user-chip" title="View Profile">
+                    <span class="nav-avatar">p</span>
+                    <span style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">pytest_proctor_grid_test_700@example.com</span>
+                </a>
+                <form action="/logout" method="post" style="display: inline;"><input type="hidden" name="_csrf" value="r8eYNvHkAMEoCuutOmVytgDJCH9QAfNH3KvHDtGBPRdp90d9lvSgVJPWOPkFOY2ZCUhG0jL4JUZgYJFq75j-Oue0XC9axXJL"/>
+                    <button type="submit" class="btn btn-outline btn-sm" style="font-size: 0.82rem; padding: 0.3rem 0.75rem;">Logout</button>
+                </form>
+            </div>
+        </div>
+        
+    </div>
+    <script>
+        (function() {
+            function updateActiveNavHighlight() {
+                try {
+                    const rawPath = window.location.pathname || '/';
+                    const path = rawPath.replace(/\/+$/, '') || '/';
+                    const navLinks = document.querySelectorAll('.navbar-nav .nav-link, .navbar-nav a.btn');
+                    
+                    let matched = null;
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        const href = (link.getAttribute('href') || '').replace(/\/+$/, '') || '/';
+                        
+                        if (path === href) {
+                            matched = link;
+                        } else if (href === '/dashboard' && (path === '' || path === '/')) {
+                            matched = link;
+                        } else if (href === '/interviews/new' && (path === '/interviews/setup' || path === '/interviews/new')) {
+                            matched = link;
+                        } else if (href === '/ats' && path.startsWith('/ats')) {
+                            matched = link;
+                        } else if (href === '/interviews/history' && path.startsWith('/interviews/history')) {
+                            matched = link;
+                        } else if (href === '/profile' && path.startsWith('/profile')) {
+                            matched = link;
+                        }
+                    });
+
+                    // Subpage fallbacks
+                    if (!matched) {
+                        if (path.includes('/report') || path.includes('/history')) {
+                            matched = document.querySelector('.navbar-nav a[data-nav="history"]') || document.querySelector('.navbar-nav a[href*="/history"]');
+                        } else if (path.startsWith('/interviews/')) {
+                            matched = document.querySelector('.navbar-nav a[data-nav="new-interview"]') || document.querySelector('.navbar-nav a[href*="/interviews/new"]');
+                        }
+                    }
+
+                    if (matched) {
+                        matched.classList.add('active');
+                    }
+                } catch (e) {
+                    console.warn('Nav highlight error:', e);
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', updateActiveNavHighlight);
+            } else {
+                updateActiveNavHighlight();
+            }
+        })();
+    </script>
+</nav>
+    
+    <main class="container my-4">
+        <div class="flex justify-between align-center mb-4 flex-wrap gap-2">
+            <div>
+                <div class="hero-badge">✦ ASSESSMENT AUDIT</div>
+                <h2 style="font-size: 1.9rem; font-weight: 800; letter-spacing: -0.025em; color: var(--text); margin-bottom: 0.25rem;">🎓 Interview Assessment Report Card</h2>
+                <p class="text-muted" style="margin: 0; font-size: 0.92rem;">Detailed AI evaluation, missing skill gaps, and curated learning recommendations</p>
+            </div>
+            <div>
+                <a href="/dashboard" class="btn btn-outline mr-2">← Back to Dashboard</a>
+                <a href="/interviews/new" class="btn btn-primary">Start New Assessment</a>
+            </div>
+        </div>
+        
+        <!-- Proctoring Violation / Termination Alert Banner -->
+        </main>
+    
+    <footer class="footer">
+    <div class="container">
+        <p>AI Interview Preparation System &copy; 2024</p>
+    </div>
+
+    <!-- Floating Vertical Side Theme Toggle (Matches Reference Image) -->
+    <aside id="floatingThemeToggle" class="theme-dock-toggle" onclick="toggleTheme()" title="Switch Light/Dark Mode" aria-label="Toggle dark and light mode">
+        <div class="theme-dock-icon-wrapper" id="themeDockIconWrapper">
+            <!-- Sun Icon (visible in Light mode with soft coral/reddish container) -->
+            <svg class="theme-dock-icon theme-dock-sun" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <!-- Moon Icon (visible in Dark mode with soft indigo container) -->
+            <svg class="theme-dock-icon theme-dock-moon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </div>
+        <span class="theme-dock-text" id="themeDockText">Light</span>
+    </aside>
+
+    <script src="/js/app.js"></script>
+</footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const video = document.getElementById('reportVideoPlayer');
+            const placeholder = document.getElementById('no-video-placeholder');
+            const interviewId = 139;
+
+            if (video && (!video.src || video.getAttribute('src') === '')) {
+                if (interviewId && window.getRecordingFromIndexedDB) {
+                    const blob = await window.getRecordingFromIndexedDB(interviewId);
+                    if (blob) {
+                        const objectUrl = URL.createObjectURL(blob);
+                        video.src = objectUrl;
+                        if (placeholder) placeholder.style.display = 'none';
+                        const actionsDiv = document.getElementById('video-actions');
+                        if (actionsDiv && !document.getElementById('download-recording-btn')) {
+                            actionsDiv.innerHTML = `<a id="download-recording-btn" href="${objectUrl}" download="interview-recording.webm" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.35rem 0.75rem; border-color: #38bdf8; color: #38bdf8;">⬇️ Download Video</a>`;
+                        }
+                    } else if (placeholder) {
+                        document.getElementById('placeholder-text').textContent = 'No video was recorded during this interview session.';
+                    }
+                } else if (placeholder) {
+                    document.getElementById('placeholder-text').textContent = 'No video was recorded during this interview session.';
+                }
+            } else if (video && video.getAttribute('src') && placeholder) {
+                placeholder.style.display = 'none';
+            }
+
+            // Render Facial Expressions & Composure Pie Chart
+            const pieCanvas = document.getElementById('expressionPieChart');
+            if (pieCanvas) {
+                const confVal = 42.0;
+                const calmVal = 20.0;
+                const fearVal = 23.0;
+                const shyVal = 15.0;
+
+                const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+                new Chart(pieCanvas.getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels: ['Confidence', 'Calm & Composed', 'Fear / Nervousness', 'Shy / Hesitant'],
+                        datasets: [{
+                            data: [confVal, calmVal, fearVal, shyVal],
+                            backgroundColor: [
+                                '#10B981', // Emerald Confident
+                                '#38BDF8', // Sky Blue Calm
+                                '#F59E0B', // Amber Fear
+                                '#A855F7'  // Purple Shy
+                            ],
+                            borderColor: isLight ? '#FFFFFF' : '#101726',
+                            borderWidth: 3,
+                            hoverOffset: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 12,
+                                    color: isLight ? '#475569' : '#94A3B8',
+                                    font: { size: 11, weight: '600', family: "'Plus Jakarta Sans', sans-serif" }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ` ${context.label}: ${context.raw}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

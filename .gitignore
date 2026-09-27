@@ -1,0 +1,10 @@
+/target/
+/*.jar
+/*.log
+/BOOT-INF/
+/META-INF/
+/org/
+.DS_Store
+.idea/
+*.iml
+*.class

@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('ATS Resume & JD Analyzer')}"></head>
+<body>
+    <div th:replace="~{layout :: nav}"></div>
+    
+    <main class="container my-4" style="max-width: 1120px;">
+        <div id="alert-box" class="alert hidden mb-4"></div>
+
+        <div class="flex justify-between align-center mb-4">
+            <div>
+                <div class="hero-badge">✦ INTELLIGENT MATCHING</div>
+                <h2 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.025em; color: var(--text); margin-bottom: 0.25rem;">ATS Resume & Job Description Analyzer</h2>
+                <p class="text-muted" style="margin: 0; font-size: 0.95rem;">Upload your PDF/Word resume or paste resume text & target job description for intelligent skill gap analysis.</p>
+            </div>
+        </div>
+
+        <!-- ATS Input Form Card -->
+        <div class="card mb-4" style="padding: 2.25rem 2.5rem; border-radius: 16px;">
+            <form id="atsForm" onsubmit="event.preventDefault(); runAtsAnalysis();">
+                <div class="grid grid-2" style="gap: 1.75rem; align-items: start;">
+                    <!-- Left: Resume Section (Upload File or Paste Text) -->
+                    <div>
+                        <div class="flex justify-between align-center mb-2">
+                            <label class="form-label mb-0" style="font-size: 0.95rem; font-weight: 600;">
+                                📄 Resume
+                            </label>
+                            <!-- Tab Switcher -->
+                            <div class="flex gap-1" style="background: var(--surface-2); padding: 3px; border-radius: 8px; border: 1px solid var(--border);">
+                                <button type="button" id="tabUploadBtn" class="btn btn-sm" onclick="setResumeTab('upload')"
+                                        style="padding: 0.3rem 0.75rem; font-size: 0.78rem; font-weight: 600; border-radius: 6px; background: var(--primary); color: #fff; border: none; cursor: pointer;">
+                                    📤 Upload File
+                                </button>
+                                <button type="button" id="tabPasteBtn" class="btn btn-sm" onclick="setResumeTab('paste')"
+                                        style="padding: 0.3rem 0.75rem; font-size: 0.78rem; font-weight: 600; border-radius: 6px; background: transparent; color: var(--text-muted); border: none; cursor: pointer;">
+                                    ✏️ Paste Text
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 1. Upload File Mode Container -->
+                        <div id="resumeUploadContainer">
+                            <!-- Dropzone (shown when no file is selected) -->
+                            <div id="fileUploadDropzone" 
+                                 onclick="document.getElementById('resumeFileInput').click()"
+                                 ondragover="handleDragOver(event)"
+                                 ondragleave="handleDragLeave(event)"
+                                 ondrop="handleFileDrop(event)"
+                                 class="ats-dropzone">
+                                <div style="font-size: 2.5rem; margin-bottom: 0.4rem;">📤</div>
+                                <div style="font-weight: 700; font-size: 1rem; color: var(--text); margin-bottom: 0.25rem;">
+                                    Click or Drag & Drop Resume File
+                                </div>
+                                <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+                                    Supports <strong>PDF (.pdf)</strong>, <strong>Word (.docx / .doc)</strong>, or <strong>Text (.txt)</strong>
+                                </div>
+                                <button type="button" class="btn btn-primary btn-sm" style="pointer-events: none; padding: 0.5rem 1.15rem; font-size: 0.85rem; font-weight: 600; border-radius: 8px;">
+                                    📁 Choose Resume File
+                                </button>
+                                <input type="file" id="resumeFileInput" accept=".pdf,.docx,.doc,.txt" style="display: none;" onchange="handleResumeFileSelect(this)">
+                            </div>
+
+                            <!-- Attached File Card (shown when file is selected - raw content is never shown) -->
+                            <div id="fileAttachedCard" style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 1.5rem; min-height: 230px; flex-direction: column; justify-content: center;">
+                                <div class="flex justify-between align-center">
+                                    <div class="flex align-center gap-3">
+                                        <div style="font-size: 2.5rem;">📄</div>
+                                        <div>
+                                            <div id="attachedFileName" style="font-weight: 700; color: var(--text); font-size: 1rem; word-break: break-all;">resume.pdf</div>
+                                            <div id="attachedFileStatus" style="font-size: 0.84rem; color: #10b981; margin-top: 0.25rem; font-weight: 600;">
+                                                ✓ File attached & parsed successfully
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-danger-outline btn-sm" onclick="removeAttachedFile()" style="padding: 0.4rem 0.85rem; font-size: 0.82rem;">
+                                        ✕ Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Manual Paste Mode Container (hidden by default) -->
+                        <div id="resumePasteContainer" style="display: none;">
+                            <textarea id="resumeManualText" class="form-control" rows="8" 
+                                      placeholder="Paste your resume text here (experience, skills, summary, projects)..." 
+                                      style="min-height: 230px; resize: vertical; border-radius: 10px; font-size: 0.9rem; line-height: 1.55;"
+                                      oninput="onManualResumeInput(this.value)"></textarea>
+                        </div>
+
+                        <!-- Hidden Textarea holding extracted/entered text for API submission without cluttering the screen -->
+                        <textarea id="resumeText" style="display: none;"></textarea>
+                    </div>
+
+                    <!-- Right: Target Job Description Section -->
+                    <div>
+                        <div class="flex justify-between align-center mb-2">
+                            <label for="jobDescription" class="form-label mb-0" style="font-size: 0.95rem; font-weight: 600;">
+                                💼 Target Job Description (JD)
+                            </label>
+                        </div>
+                        <textarea id="jobDescription" class="form-control" rows="8" 
+                                  placeholder="Paste the target job description text here (requirements, qualifications, responsibilities)..." 
+                                  style="min-height: 230px; resize: vertical; border-radius: 10px; font-size: 0.9rem; line-height: 1.55;"></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" id="atsBtn" class="btn btn-primary btn-block mt-4" style="font-size: 1.05rem; padding: 0.95rem 1.5rem; font-weight: 700; border-radius: 10px; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);">
+                    🔍 Analyze ATS Match & Skill Gaps
+                </button>
+            </form>
+        </div>
+
+        <!-- Analysis Results Section (Hidden initially) -->
+        <div id="atsResultSection" class="hidden">
+            <div class="card fade-in mb-4" style="padding: 2.25rem 2.5rem; border-radius: 16px;">
+                <div class="grid grid-2 align-center" style="gap: 2rem;">
+                    <div class="text-center py-2" style="border-right: 1px solid var(--border); padding-right: 2rem;">
+                        <small class="text-muted text-uppercase" style="letter-spacing: 1.5px; font-weight: 700; font-size: 0.78rem;">ATS Compatibility Score</small>
+                        <div id="scoreDisplay" style="font-size: 3.8rem; font-weight: 900; color: #6366f1; margin: 0.5rem 0; letter-spacing: -0.03em;">0.0%</div>
+                        <div id="matchCategoryBadge" class="badge badge-info" style="font-size: 0.9rem; padding: 0.45rem 1.15rem; border-radius: 9999px;">Analyzing...</div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="mb-2" style="color:var(--text); font-size: 1.35rem; font-weight: 700;">AI Match Breakdown</h3>
+                        <p id="atsSummaryText" class="text-muted" style="line-height: 1.65; font-size: 0.95rem;">
+                            Your resume has been analyzed against the provided job description requirements.
+                        </p>
+                        <div class="mt-4">
+                            <button type="button" id="practiceBtn" onclick="startPracticeInterviewFromAts()" class="btn btn-primary btn-block" style="padding: 0.85rem 1.25rem; font-weight: 700; font-size: 0.95rem; border-radius: 10px;">
+                                🎯 Start Practice Interview for this JD →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matched vs Missing Skills Grid -->
+            <div class="grid grid-2 mb-4" style="gap: 1.5rem;">
+                <div class="card" style="padding: 1.75rem; border-radius: 14px;">
+                    <h3 style="color:#10b981; font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <span>✅</span> Matched Skills & Keywords
+                    </h3>
+                    <div id="matchedKeywordsContainer" class="flex flex-wrap gap-2">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+                
+                <div class="card" style="padding: 1.75rem; border-radius: 14px;">
+                    <h3 style="color:#ef4444; font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.4rem;">
+                        <span>⚠️</span> Missing Skills & Gaps
+                    </h3>
+                    <div id="missingSkillsContainer" class="flex flex-wrap gap-2">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ATS Improvement Roadmap -->
+            <div class="card mb-4" style="padding: 1.75rem 2rem; border-radius: 14px;">
+                <h3 style="color:var(--primary); font-size: 1.15rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <span>🚀</span> ATS Resume Improvement Suggestions
+                </h3>
+                <ul id="suggestionsList" style="list-style-type: none; padding-left: 0; color: var(--text); line-height: 1.8; margin: 0;">
+                    <!-- Filled by JS -->
+                </ul>
+            </div>
+
+            <!-- Recommended Courses for Missing Skills -->
+            <div class="card" style="padding: 1.75rem 2rem; border-radius: 14px;">
+                <h3 style="color:#38bdf8; font-size: 1.15rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <span>🎓</span> Recommended Courses to Fill Skill Gaps
+                </h3>
+                <div id="coursesGrid" class="grid grid-2" style="gap: 1.15rem;">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <div th:replace="~{layout :: footer}"></div>
+
+    <script>
+        let currentResumeTab = 'upload';
+
+        function setResumeTab(tab) {
+            currentResumeTab = tab;
+            const tabUploadBtn = document.getElementById('tabUploadBtn');
+            const tabPasteBtn = document.getElementById('tabPasteBtn');
+            const uploadContainer = document.getElementById('resumeUploadContainer');
+            const pasteContainer = document.getElementById('resumePasteContainer');
+            const resumeText = document.getElementById('resumeText');
+            const resumeManualText = document.getElementById('resumeManualText');
+            
+            if (tab === 'upload') {
+                tabUploadBtn.style.background = 'var(--primary)';
+                tabUploadBtn.style.color = '#fff';
+                tabPasteBtn.style.background = 'transparent';
+                tabPasteBtn.style.color = 'var(--text-muted)';
+                uploadContainer.style.display = 'block';
+                pasteContainer.style.display = 'none';
+            } else {
+                tabPasteBtn.style.background = 'var(--primary)';
+                tabPasteBtn.style.color = '#fff';
+                tabUploadBtn.style.background = 'transparent';
+                tabUploadBtn.style.color = 'var(--text-muted)';
+                pasteContainer.style.display = 'block';
+                uploadContainer.style.display = 'none';
+                
+                if (resumeManualText && resumeText && !resumeManualText.value && resumeText.value) {
+                    resumeManualText.value = resumeText.value;
+                }
+            }
+        }
+
+        function onManualResumeInput(val) {
+            const resumeText = document.getElementById('resumeText');
+            if (resumeText) resumeText.value = val;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const dz = document.getElementById('fileUploadDropzone');
+            if (dz) {
+                dz.style.borderColor = 'var(--primary)';
+                dz.style.background = 'rgba(99, 102, 241, 0.08)';
+            }
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const dz = document.getElementById('fileUploadDropzone');
+            if (dz) {
+                dz.style.borderColor = 'var(--primary-border)';
+                dz.style.background = 'var(--surface-2)';
+            }
+        }
+
+        function handleFileDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const dz = document.getElementById('fileUploadDropzone');
+            if (dz) {
+                dz.style.borderColor = 'var(--primary-border)';
+                dz.style.background = 'var(--surface-2)';
+            }
+            if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const fileInput = document.getElementById('resumeFileInput');
+                fileInput.files = e.dataTransfer.files;
+                handleResumeFileSelect(fileInput);
+            }
+        }
+
+        async function handleResumeFileSelect(input) {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            const dropzone = document.getElementById('fileUploadDropzone');
+            const attachedCard = document.getElementById('fileAttachedCard');
+            const attachedFileName = document.getElementById('attachedFileName');
+            const attachedFileStatus = document.getElementById('attachedFileStatus');
+            const resumeArea = document.getElementById('resumeText');
+            
+            // Switch dropzone to attached card preview immediately
+            dropzone.style.display = 'none';
+            attachedCard.style.display = 'flex';
+            attachedFileName.textContent = file.name;
+            attachedFileStatus.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px;"></div> Extracting content...';
+            
+            try {
+                if (file.name.endsWith('.txt')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        resumeArea.value = e.target.result;
+                        const words = e.target.result.trim().split(/\s+/).length;
+                        attachedFileStatus.innerHTML = `✓ File attached & parsed (${words} words)`;
+                        hideAlert();
+                    };
+                    reader.readAsText(file);
+                } else {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const csrf = getCsrfToken();
+                    const headers = {};
+                    if (csrf.token && csrf.header) headers[csrf.header] = csrf.token;
+                    
+                    const response = await fetch('/api/ats/extract-resume-text', {
+                        method: 'POST',
+                        headers: headers,
+                        body: formData
+                    });
+                    
+                    if (!response.ok) throw new Error('Could not extract text from document');
+                    const data = await response.json();
+                    
+                    // Stored in background hidden field, NOT displayed as raw text on the page
+                    resumeArea.value = data.text;
+                    const words = data.text.trim().split(/\s+/).length;
+                    attachedFileStatus.innerHTML = `✓ File attached & parsed (${words} words)`;
+                    hideAlert();
+                }
+            } catch (err) {
+                console.error('File extraction error:', err);
+                attachedFileStatus.innerHTML = `<span style="color:#ef4444;">⚠️ Parsing failed: ${err.message}</span>`;
+                showAlert('⚠️ Could not extract text from file. Please ensure it is a valid PDF/Word file, or use "Paste Text" tab.', 'error');
+            }
+        }
+
+        function removeAttachedFile() {
+            const input = document.getElementById('resumeFileInput');
+            if (input) input.value = '';
+            const resumeArea = document.getElementById('resumeText');
+            if (resumeArea) resumeArea.value = '';
+            const dropzone = document.getElementById('fileUploadDropzone');
+            const attachedCard = document.getElementById('fileAttachedCard');
+            if (attachedCard) attachedCard.style.display = 'none';
+            if (dropzone) dropzone.style.display = 'flex';
+        }
+
+        async function runAtsAnalysis() {
+            const resumeText = document.getElementById('resumeText').value.trim();
+            const jobDescription = document.getElementById('jobDescription').value.trim();
+            
+            if (!resumeText) {
+                showAlert('Please upload a resume file (PDF / Word) or paste your resume text.', 'warning');
+                return;
+            }
+            if (!jobDescription) {
+                showAlert('Please paste the target Job Description (JD) to analyze against.', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('atsBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Analyzing Resume against JD...';
+            
+            try {
+                const result = await apiCall('/api/ats/analyze', 'POST', { resumeText, jobDescription });
+                
+                document.getElementById('scoreDisplay').textContent = result.atsScore.toFixed(1) + '%';
+                
+                const catBadge = document.getElementById('matchCategoryBadge');
+                catBadge.textContent = result.matchCategory;
+                if (result.atsScore >= 80) {
+                    catBadge.className = 'badge badge-success';
+                } else if (result.atsScore >= 60) {
+                    catBadge.className = 'badge badge-warning';
+                } else {
+                    catBadge.className = 'badge badge-danger';
+                }
+                
+                // Matched Keywords
+                const matchedDiv = document.getElementById('matchedKeywordsContainer');
+                if (result.matchedKeywords && result.matchedKeywords.length > 0) {
+                    matchedDiv.innerHTML = result.matchedKeywords.map(k => `<span class="ats-chip ats-chip-matched">✓ ${k}</span>`).join(' ');
+                } else {
+                    matchedDiv.innerHTML = '<span class="text-muted" style="font-size: 0.9rem;">No key skill matches found.</span>';
+                }
+                
+                // Missing Skills
+                const missingDiv = document.getElementById('missingSkillsContainer');
+                if (result.missingSkills && result.missingSkills.length > 0) {
+                    missingDiv.innerHTML = result.missingSkills.map(k => `<span class="ats-chip ats-chip-missing">✕ ${k}</span>`).join(' ');
+                } else {
+                    missingDiv.innerHTML = '<span class="ats-chip ats-chip-matched">✓ No critical missing skills! Great alignment.</span>';
+                }
+                
+                // Suggestions
+                const suggUl = document.getElementById('suggestionsList');
+                if (result.improvementSuggestions && result.improvementSuggestions.length > 0) {
+                    suggUl.innerHTML = result.improvementSuggestions.map(s => `
+                        <li style="display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.75rem 0; border-bottom: 1px solid var(--border); font-size: 0.92rem;">
+                            <span style="color: var(--primary); font-size: 1.15rem; line-height: 1;">💡</span>
+                            <span style="color: var(--text);">${s}</span>
+                        </li>
+                    `).join('');
+                }
+                
+                // Courses
+                const coursesGrid = document.getElementById('coursesGrid');
+                if (result.courseRecommendations && result.courseRecommendations.length > 0) {
+                    coursesGrid.innerHTML = result.courseRecommendations.map(c => `
+                        <div class="course-card" style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease;">
+                            <div>
+                                <span class="badge badge-topic" style="font-size: 0.75rem; margin-bottom: 0.5rem; display: inline-block;">${c.platform}</span>
+                                <h4 style="margin: 0.2rem 0 0.5rem 0; font-size: 0.98rem; font-weight: 700; color: var(--text); line-height: 1.4;">${c.title}</h4>
+                            </div>
+                            <a href="${c.url}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm" style="margin-top: 0.85rem; width: 100%; text-align: center; font-weight: 600;">
+                                View Course ↗
+                            </a>
+                        </div>
+                    `).join('');
+                }
+
+                // Store ATS result for direct practice interview creation
+                window.lastAtsResult = {
+                    resumeText: resumeText,
+                    jobDescription: jobDescription,
+                    matchedKeywords: result.matchedKeywords || [],
+                    missingSkills: result.missingSkills || []
+                };
+
+                document.getElementById('atsResultSection').classList.remove('hidden');
+                hideAlert();
+                
+            } catch (err) {
+                document.getElementById('atsResultSection').classList.add('hidden');
+                showAlert('⚠️ ATS Analysis Error: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔍 Analyze ATS Match & Skill Gaps';
+            }
+        }
+
+        async function startPracticeInterviewFromAts() {
+            const btn = document.getElementById('practiceBtn');
+            if (!window.lastAtsResult) {
+                showAlert('Please run the ATS analysis first before starting a practice interview.', 'warning');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Creating JD Interview...';
+
+            try {
+                const requestPayload = {
+                    resumeText: window.lastAtsResult.resumeText,
+                    jobDescription: window.lastAtsResult.jobDescription,
+                    matchedKeywords: window.lastAtsResult.matchedKeywords,
+                    missingSkills: window.lastAtsResult.missingSkills
+                };
+
+                const createdInterview = await apiCall('/api/ats/create-interview', 'POST', requestPayload);
+
+                if (!createdInterview || !createdInterview.id) {
+                    throw new Error('Could not create interview session from JD');
+                }
+
+                // Start interview to set status IN_PROGRESS & generate Question 1
+                await apiCall(`/api/interviews/${createdInterview.id}/start`, 'POST');
+
+                // Navigate directly to the live interview session page
+                window.location.href = `/interviews/${createdInterview.id}`;
+            } catch (err) {
+                console.error('Failed to create ATS interview:', err);
+                showAlert('⚠️ Failed to start interview: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '🎯 Start Practice Interview for this JD →';
+            }
+        }
+    </script>
+
+    <!-- RESUME Mode AI Chatbot Widget -->
+    <div th:replace="~{chat-widget :: chatWidget('RESUME', null, null)}"></div>
+</body>
+</html>

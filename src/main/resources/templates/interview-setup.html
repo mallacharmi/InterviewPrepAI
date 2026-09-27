@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Setup Interview')}"></head>
+<body>
+    <div th:replace="~{layout :: nav}"></div>
+    
+    <main class="container my-4" style="max-width: 1060px;">
+        <div class="card fade-in" style="padding: 2.25rem 2.5rem; border-radius: 16px;">
+            <div class="mb-4">
+                <div class="hero-badge">✦ AI ASSESSMENT SETUP</div>
+                <h2 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.025em; color: var(--text); margin-bottom: 0.35rem;">Configure Your Interview</h2>
+                <p class="text-muted" style="margin: 0; font-size: 0.95rem;">Select your target position, difficulty, and specialized topics for real-time AI evaluation</p>
+            </div>
+            
+            <div id="alert-box" class="alert hidden mb-4"></div>
+            
+            <form id="setupForm" onsubmit="event.preventDefault(); createInterview();">
+                <div class="grid grid-2" style="gap: 1.5rem;">
+                    <div class="form-group mb-0">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                            <label for="targetRole" class="form-label" style="margin-bottom: 0; font-weight: 600;">Target Role</label>
+                            <button type="button" id="toggleSetupRoleBtn" onclick="toggleSetupCustomRoleMode()" style="background: none; border: none; padding: 0; color: var(--primary); font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.25rem;">
+                                <span>✏️</span> Enter Manually
+                            </button>
+                        </div>
+                        <select id="targetRole" class="form-control" onchange="handleSetupRoleSelectChange()">
+                            <option value="Java Developer" th:selected="${user.targetRole == 'Java Developer'}">Java Developer</option>
+                            <option value="Backend Developer" th:selected="${user.targetRole == 'Backend Developer'}">Backend Developer</option>
+                            <option value="Fullstack Developer" th:selected="${user.targetRole == 'Fullstack Developer'}">Fullstack Developer</option>
+                            <option value="Software Engineer" th:selected="${user.targetRole == 'Software Engineer'}">Software Engineer</option>
+                            <option value="System Architect" th:selected="${user.targetRole == 'System Architect'}">System Architect</option>
+                            <option value="Data Engineer" th:selected="${user.targetRole == 'Data Engineer'}">Data Engineer</option>
+                            <option value="Data Analyst" th:selected="${user.targetRole == 'Data Analyst'}">Data Analyst</option>
+                            <option value="Data Scientist" th:selected="${user.targetRole == 'Data Scientist'}">Data Scientist</option>
+                            <option th:if="${user.targetRole != null and user.targetRole != 'Java Developer' and user.targetRole != 'Backend Developer' and user.targetRole != 'Fullstack Developer' and user.targetRole != 'Software Engineer' and user.targetRole != 'System Architect' and user.targetRole != 'Data Engineer' and user.targetRole != 'Data Analyst' and user.targetRole != 'Data Scientist' and user.targetRole != 'Other' and user.targetRole != 'OTHER'}"
+                                    th:value="${user.targetRole}"
+                                    th:text="${user.targetRole + ' (Custom)'}"
+                                    selected></option>
+                            <option value="OTHER">➕ Other (Enter Role Manually)...</option>
+                        </select>
+                        
+                        <div id="setupCustomRoleWrapper" style="display: none; margin-top: 0.6rem;">
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="text" id="setupCustomRoleInput" class="form-control" placeholder="Type custom role (e.g. DevOps Engineer, Android Developer)..." style="font-size: 0.9rem; padding: 0.6rem 0.9rem;" oninput="onSetupCustomRoleInput(this.value)">
+                                <button type="button" class="btn btn-outline-secondary" onclick="cancelSetupCustomRoleMode()" title="Back to predefined list" style="padding: 0.55rem 0.85rem; font-size: 0.8rem; white-space: nowrap;">✕ List</button>
+                            </div>
+                            <small class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem; display: block;">💡 Tailors interview questions and scenarios directly to this role.</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mb-0">
+                        <label for="interviewType" class="form-label" style="font-weight: 600;">Interview Type</label>
+                        <select id="interviewType" class="form-control" onchange="handleInterviewTypeChange()">
+                            <option value="TECHNICAL" selected>Technical</option>
+                            <option value="HR">HR</option>
+                            <option value="MIXED">Technical + HR</option>
+                        </select>
+                        <small id="interviewTypeHint" class="text-muted" style="display: block; margin-top: 0.35rem; font-size: 0.8rem; color: var(--accent);"></small>
+                    </div>
+                </div>
+                
+                <div class="grid grid-2 mt-4" style="gap: 1.5rem;">
+                    <div class="form-group mb-0">
+                        <label class="form-label" style="font-weight: 600;">Difficulty Level</label>
+                        <div class="segmented-group" style="width: 100%; display: flex; padding: 4px;">
+                            <label class="segmented-pill" style="flex: 1; text-align: center; padding: 0.65rem 0.5rem;"><input type="radio" name="difficulty" value="EASY"> Easy</label>
+                            <label class="segmented-pill" style="flex: 1; text-align: center; padding: 0.65rem 0.5rem;"><input type="radio" name="difficulty" value="MEDIUM" checked> Medium</label>
+                            <label class="segmented-pill" style="flex: 1; text-align: center; padding: 0.65rem 0.5rem;"><input type="radio" name="difficulty" value="HARD"> Hard</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mb-0">
+                        <label class="form-label" style="font-weight: 600;">Number of Questions</label>
+                        <div class="segmented-group" style="width: 100%; display: flex; padding: 4px;">
+                            <label class="segmented-pill" style="flex: 1; text-align: center; padding: 0.65rem 0.5rem;"><input type="radio" name="totalQuestions" value="5" checked> 5 Questions</label>
+                            <label class="segmented-pill" style="flex: 1; text-align: center; padding: 0.65rem 0.5rem;"><input type="radio" name="totalQuestions" value="10"> 10 Questions</label>
+                            <label class="segmented-pill" style="flex: 1; text-align: center; padding: 0.65rem 0.5rem;"><input type="radio" name="totalQuestions" value="15"> 15 Questions</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group mt-4 pt-2">
+                    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <label class="form-label" style="font-size: 1rem; font-weight: 700; margin-bottom: 0;">Select Focus Topics (12+ Topics Available)</label>
+                        <span id="roleBadgeDisplay" style="font-size: 0.8rem; font-weight: 600; color: var(--primary); background: var(--surface-2); padding: 0.25rem 0.75rem; border-radius: 9999px; border: 1px solid var(--border);">Target: Java Developer</span>
+                    </div>
+                    <p class="text-muted mb-3" style="font-size: 0.88rem;">Click to toggle specific topics tailored for your target role. You can also add custom write-in topics below.</p>
+                    
+                    <input type="hidden" id="selectedTopicsInput" value="">
+                    
+                    <!-- Dynamic Role Topics Sub-Boxes Grid Container -->
+                    <div id="dynamicTopicsContainer" class="topic-grid"></div>
+                    
+                    <!-- Custom Topic Sub-Box Field -->
+                    <div class="topic-category-card" style="margin-top: 1.25rem; padding: 1.35rem 1.5rem;">
+                        <div class="topic-category-title" style="color: var(--text);">
+                            <span>➕</span> Custom Topics / Write-In
+                        </div>
+                        <p class="text-muted mb-2" style="font-size: 0.82rem;">Add any specific tool, library, or architecture topic not listed above.</p>
+                        <div id="customTopicsContainer" class="topics-container mb-3" style="display: flex; flex-wrap: wrap; gap: 0.5rem;"></div>
+                        <div style="display: flex; gap: 0.6rem; align-items: center; width: 100%;">
+                            <input type="text" id="customTopicInput" class="form-control" placeholder="Type a custom topic (e.g. Docker, Kafka, Power BI)..." style="font-size: 0.9rem; padding: 0.65rem 1rem;" onkeypress="if(event.key==='Enter'){event.preventDefault();addCustomTopic();}">
+                            <button type="button" class="btn btn-outline-primary" style="font-size: 0.88rem; padding: 0.65rem 1.15rem; font-weight: 600; white-space: nowrap;" onclick="addCustomTopic()">+ Add Topic</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit" id="startBtn" class="btn btn-primary btn-block mt-4" style="font-size: 1.05rem; padding: 0.95rem 1.5rem; font-weight: 700; border-radius: 10px; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);">
+                    🚀 Create & Launch Practice Interview →
+                </button>
+            </form>
+        </div>
+    </main>
+    
+    <div th:replace="~{layout :: footer}"></div>
+    
+    <script th:src="@{/js/app.js}"></script>
+    <script>
+        // Bulletproof global apiCall fallback if app.js is cached or delayed
+        if (typeof window.apiCall !== 'function') {
+            window.apiCall = async function(url, method = 'GET', body = null) {
+                const token = document.querySelector('meta[name="_csrf"]')?.content;
+                const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+                const headers = { 'Content-Type': 'application/json' };
+                if (token && header) headers[header] = token;
+                const options = { method, headers };
+                if (body) options.body = JSON.stringify(body);
+                const res = await fetch(url, options);
+                if (!res.ok) {
+                    let errMsg = 'API Error';
+                    try { const errData = await res.json(); errMsg = errData.message || errMsg; } catch (e) {}
+                    throw new Error(errMsg);
+                }
+                const text = await res.text();
+                return text ? JSON.parse(text) : {};
+            };
+        }
+        if (typeof apiCall !== 'function') {
+            var apiCall = window.apiCall;
+        }
+
+        const ROLE_TOPICS = {
+            'Java Developer': [
+                { category: 'Core Java & Concepts', topics: ['Core Java & OOP', 'Collections Framework', 'Multithreading & Concurrency', 'Java 8+ Streams & Lambda'] },
+                { category: 'Frameworks & Database', topics: ['Spring Boot & Spring MVC', 'RESTful APIs & JSON', 'Hibernate & Spring Data JPA', 'Microservices Architecture'] },
+                { category: 'Testing & System', topics: ['JUnit & Mockito', 'Design Patterns (OOD)', 'SQL & Database Design', 'JVM Memory & Garbage Collection'] }
+            ],
+            'Backend Developer': [
+                { category: 'API & Architecture', topics: ['REST & GraphQL APIs', 'Database Indexing & Queries', 'Microservices & Distributed Systems', 'System Architecture & Design'] },
+                { category: 'Performance & Caching', topics: ['Caching (Redis / Memcached)', 'Message Queues (Kafka / RabbitMQ)', 'Authentication (JWT / OAuth2)', 'API Rate Limiting & Gateway'] },
+                { category: 'DevOps & Storage', topics: ['Docker & Containerization', 'CI/CD & Deployment', 'SQL & NoSQL Databases', 'Load Balancing & Scalability'] }
+            ],
+            'Fullstack Developer': [
+                { category: 'Frontend', topics: ['React / Angular / Vue', 'HTML5 / CSS3 / JavaScript (ES6+)', 'State Management (Redux/Context)', 'Responsive UI & CSS Grid'] },
+                { category: 'Backend & APIs', topics: ['Node.js / Java / Python Backend', 'RESTful Web Services', 'Database Systems (SQL / Mongo)', 'Web Security & CORS'] },
+                { category: 'Dev Tools & Testing', topics: ['Git & Version Control', 'Cloud Deployment & Hosting', 'Performance Optimization', 'Unit & Integration Testing'] }
+            ],
+            'Software Engineer': [
+                { category: 'Core Engineering', topics: ['Data Structures & Algorithms', 'Object-Oriented Design (OOD)', 'System Design & Scalability', 'Code Refactoring & Clean Code'] },
+                { category: 'Practices & Testing', topics: ['Design Patterns (Gang of Four)', 'Git & Code Review', 'Agile & Scrum Methodologies', 'Software Testing & QA'] },
+                { category: 'Systems & API', topics: ['Debugging & Profiling', 'API Design & Integration', 'Operating Systems & Threading', 'Network Protocols (HTTP/TCP)'] }
+            ],
+            'Data Analyst': [
+                { category: 'Data Analysis & SQL', topics: ['SQL Queries & Advanced Joins', 'Data Cleaning & Wrangling', 'Excel & Spreadsheets (VLOOKUP/Pivot)', 'Python for Analytics (Pandas/NumPy)'] },
+                { category: 'Visualization & BI', topics: ['Tableau & Power BI Dashboards', 'Business Intelligence (BI)', 'Data Storytelling & Metrics', 'Data Visualization (Seaborn/Plotly)'] },
+                { category: 'Statistics & ETL', topics: ['Statistics & Probability', 'A/B Testing & Hypothesis Testing', 'ETL Data Pipelines', 'Data Warehousing Basics'] }
+            ],
+            'Data Scientist': [
+                { category: 'Machine Learning', topics: ['Machine Learning Algorithms', 'Supervised & Unsupervised Learning', 'Feature Engineering & Selection', 'Model Evaluation & Hyperparameters'] },
+                { category: 'Deep Learning & AI', topics: ['Deep Learning & Neural Networks', 'NLP (Natural Language Processing)', 'Python & Scikit-Learn', 'TensorFlow / PyTorch Frameworks'] },
+                { category: 'Stats & Big Data', topics: ['Statistics & Probability Theory', 'Exploratory Data Analysis (EDA)', 'SQL & Big Data Processing', 'Predictive Modeling & Analytics'] }
+            ],
+            'System Architect': [
+                { category: 'High-Level Design', topics: ['High Availability & Scalability', 'Microservices vs Monolithic', 'Event-Driven Architecture', 'Cloud Infrastructure (AWS/GCP/Azure)'] },
+                { category: 'Distributed Systems', topics: ['Distributed Systems & CAP Theorem', 'Database Sharding & Replication', 'Security & Compliance Standards', 'API Gateway & Service Mesh'] },
+                { category: 'Reliability & Messaging', topics: ['System Resiliency & Failover', 'Performance & Load Tuning', 'Message Brokers (Kafka/RabbitMQ)', 'Domain-Driven Design (DDD)'] }
+            ],
+            'Data Engineer': [
+                { category: 'Big Data & Pipelines', topics: ['Data Warehousing (Snowflake/BigQuery)', 'ETL / ELT Pipeline Architecture', 'Apache Spark & PySpark', 'Apache Kafka & Real-Time Streaming'] },
+                { category: 'Database & Code', topics: ['SQL & Query Performance Tuning', 'Python / Scala for Data Engineering', 'Data Modeling & Schema Design', 'Airflow & Workflow Orchestration'] },
+                { category: 'Cloud & Containers', topics: ['Cloud Data Lakes (S3/GCS)', 'Data Governance & Security', 'Big Data Processing Frameworks', 'Docker & Kubernetes Containerization'] }
+            ],
+            'Other': [
+                { category: 'General Software Concepts', topics: ['Technical Problem Solving', 'System Architecture & Design', 'Data Structures & Algorithms', 'Web Development Fundamentals'] },
+                { category: 'Development & APIs', topics: ['API Integration & Design', 'Database Queries & SQL', 'Object-Oriented Programming', 'Software Testing & QA'] },
+                { category: 'Practices & Security', topics: ['Agile Methodologies & Scrum', 'Debugging & Troubleshooting', 'Code Optimization & Profiling', 'Web Security Best Practices'] }
+            ]
+        };
+
+        function getEffectiveTargetRole() {
+            const roleSelect = document.getElementById('targetRole');
+            let role = roleSelect ? roleSelect.value : 'Java Developer';
+            const customWrapper = document.getElementById('setupCustomRoleWrapper');
+            const customInput = document.getElementById('setupCustomRoleInput');
+            if (role === 'OTHER' || (customWrapper && customWrapper.style.display !== 'none')) {
+                if (customInput && customInput.value.trim()) {
+                    role = customInput.value.trim();
+                } else {
+                    role = 'Custom Role';
+                }
+            }
+            return role;
+        }
+
+        function renderRoleTopics() {
+            const effectiveRole = getEffectiveTargetRole();
+            
+            const displayBadge = document.getElementById('roleBadgeDisplay');
+            if (displayBadge) displayBadge.textContent = 'Target: ' + effectiveRole;
+
+            const container = document.getElementById('dynamicTopicsContainer');
+            if (!container) return;
+
+            const categoryList = ROLE_TOPICS[effectiveRole] || ROLE_TOPICS['Other'];
+            let html = '';
+
+            categoryList.forEach(cat => {
+                html += `
+                    <div class="topic-category-card">
+                        <div class="topic-category-title">
+                            <span>📌</span> ${cat.category}
+                        </div>
+                        <div class="topics-container" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                `;
+                cat.topics.forEach(t => {
+                    html += `<span class="badge badge-topic" onclick="toggleTopic(this)">${t}</span>`;
+                });
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            updateSelectedTopicsInput();
+        }
+
+        function handleSetupRoleSelectChange() {
+            const select = document.getElementById('targetRole');
+            const wrapper = document.getElementById('setupCustomRoleWrapper');
+            const input = document.getElementById('setupCustomRoleInput');
+            const toggleBtn = document.getElementById('toggleSetupRoleBtn');
+            
+            if (select.value === 'OTHER') {
+                wrapper.style.display = 'block';
+                input.focus();
+                if (toggleBtn) toggleBtn.innerHTML = '<span>📋</span> Pick from list';
+            } else {
+                wrapper.style.display = 'none';
+                if (toggleBtn) toggleBtn.innerHTML = '<span>✏️</span> Enter Manually';
+            }
+            renderRoleTopics();
+        }
+
+        function toggleSetupCustomRoleMode() {
+            const select = document.getElementById('targetRole');
+            const wrapper = document.getElementById('setupCustomRoleWrapper');
+            if (wrapper.style.display === 'none' || select.value !== 'OTHER') {
+                select.value = 'OTHER';
+                handleSetupRoleSelectChange();
+            } else {
+                cancelSetupCustomRoleMode();
+            }
+        }
+
+        function cancelSetupCustomRoleMode() {
+            const select = document.getElementById('targetRole');
+            const wrapper = document.getElementById('setupCustomRoleWrapper');
+            const input = document.getElementById('setupCustomRoleInput');
+            const toggleBtn = document.getElementById('toggleSetupRoleBtn');
+            
+            wrapper.style.display = 'none';
+            input.value = '';
+            select.value = 'Java Developer';
+            if (toggleBtn) toggleBtn.innerHTML = '<span>✏️</span> Enter Manually';
+            renderRoleTopics();
+        }
+
+        function onSetupCustomRoleInput(val) {
+            const displayBadge = document.getElementById('roleBadgeDisplay');
+            if (displayBadge) displayBadge.textContent = 'Target: ' + (val.trim() || 'Custom Role');
+        }
+
+        function toggleTopic(element) {
+            element.classList.toggle('active');
+            element.classList.toggle('selected');
+            updateSelectedTopicsInput();
+        }
+
+        function addCustomTopic() {
+            const input = document.getElementById('customTopicInput');
+            const val = input ? input.value.trim() : '';
+            if (!val) return;
+
+            const container = document.getElementById('customTopicsContainer');
+            if (container) {
+                const span = document.createElement('span');
+                span.className = 'badge badge-topic active selected';
+                span.textContent = val;
+                span.onclick = function() { toggleTopic(this); };
+                container.appendChild(span);
+            }
+            input.value = '';
+            updateSelectedTopicsInput();
+        }
+
+        function updateSelectedTopicsInput() {
+            const selectedBadges = document.querySelectorAll('.badge-topic.active, .badge-topic.selected');
+            const topics = Array.from(selectedBadges).map(b => b.textContent.replace('✓', '').trim()).filter(Boolean);
+            document.getElementById('selectedTopicsInput').value = topics.join(',');
+        }
+
+        async function createInterview() {
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></div> Creating...';
+            
+            const selectedTopics = document.getElementById('selectedTopicsInput').value;
+            let topicsList = selectedTopics ? selectedTopics.split(',').map(s => s.trim()).filter(Boolean) : [];
+            
+            let role = document.getElementById('targetRole').value;
+            const customWrapper = document.getElementById('setupCustomRoleWrapper');
+            const customInput = document.getElementById('setupCustomRoleInput');
+            
+            if (role === 'OTHER' || (customWrapper && customWrapper.style.display !== 'none')) {
+                const trimmed = customInput ? customInput.value.trim() : '';
+                if (!trimmed) {
+                    showAlert('Please enter your custom target role (e.g. DevOps Engineer, Android Developer).', 'error');
+                    if (customInput) customInput.focus();
+                    btn.disabled = false;
+                    btn.innerHTML = 'Create Interview';
+                    return;
+                }
+                role = trimmed;
+            }
+
+            if (topicsList.length === 0) {
+                const defaultList = ROLE_TOPICS[role] || ROLE_TOPICS['Other'];
+                topicsList = [defaultList[0].topics[0], defaultList[0].topics[1], defaultList[1].topics[0]];
+            }
+            
+            const data = {
+                targetRole: role,
+                interviewType: document.getElementById('interviewType').value,
+                difficulty: document.querySelector('input[name="difficulty"]:checked').value,
+                totalQuestions: parseInt(document.querySelector('input[name="totalQuestions"]:checked').value),
+                topics: topicsList
+            };
+            
+            try {
+                const interview = await apiCall('/api/interviews', 'POST', data);
+                window.location.href = `/interviews/${interview.id}`;
+            } catch (error) {
+                showAlert('Failed to create interview: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = 'Create Interview';
+            }
+        }
+
+        function handleInterviewTypeChange() {
+            const type = document.getElementById('interviewType').value;
+            const hint = document.getElementById('interviewTypeHint');
+            if (type === 'HR') {
+                hint.textContent = '💡 Focus: Questions will evaluate behavioral traits, cultural fit, team collaboration, and communication.';
+            } else if (type === 'MIXED') {
+                hint.textContent = '💡 Focus: A balanced session alternating between technical problem-solving and HR behavioral scenarios.';
+            } else {
+                hint.textContent = '💡 Focus: In-depth technical questions targeting your role and selected domain topics.';
+            }
+        }
+
+        // Render topics on initial page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const select = document.getElementById('targetRole');
+            const known = ['Java Developer', 'Backend Developer', 'Fullstack Developer', 'Software Engineer', 'System Architect', 'Data Engineer', 'Data Analyst', 'Data Scientist', 'OTHER', 'Other'];
+            if (select && select.value && !known.includes(select.value)) {
+                const customInput = document.getElementById('setupCustomRoleInput');
+                if (customInput) customInput.value = select.value;
+            }
+            renderRoleTopics();
+            handleInterviewTypeChange();
+        });
+    </script>
+
+    <!-- PREP Mode AI Chatbot Widget -->
+    <div th:replace="~{chat-widget :: chatWidget('PREP', null, 'Java Developer')}"></div>
+</body>
+</html>

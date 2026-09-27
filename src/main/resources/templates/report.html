@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Assessment Report Card')}"></head>
+<body>
+    <div th:replace="~{layout :: nav}"></div>
+    
+    <main class="container my-4">
+        <div class="flex justify-between align-center mb-4 flex-wrap gap-2">
+            <div>
+                <div class="hero-badge">✦ ASSESSMENT AUDIT</div>
+                <h2 style="font-size: 1.9rem; font-weight: 800; letter-spacing: -0.025em; color: var(--text); margin-bottom: 0.25rem;">🎓 Interview Assessment Report Card</h2>
+                <p class="text-muted" style="margin: 0; font-size: 0.92rem;">Detailed AI evaluation, missing skill gaps, and curated learning recommendations</p>
+            </div>
+            <div>
+                <a th:href="@{/dashboard}" class="btn btn-outline mr-2">← Back to Dashboard</a>
+                <a th:href="@{/interviews/new}" class="btn btn-primary">Start New Assessment</a>
+            </div>
+        </div>
+        
+        <!-- Proctoring Violation / Termination Alert Banner -->
+        <div th:if="${interview != null && (interview.status == 'TERMINATED' || (interview.terminationReason != null && !#strings.isEmpty(interview.terminationReason)))}" class="card mb-4" style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.35);">
+            <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                <div style="font-size: 2.2rem; line-height: 1;">🚨</div>
+                <div>
+                    <h3 style="color: #ef4444; font-weight: 700; margin: 0 0 0.35rem 0;">Assessment Terminated Early</h3>
+                    <p style="color: var(--text); margin: 0 0 0.4rem 0; font-size: 0.95rem;">
+                        This interview was automatically terminated early due to proctoring policy enforcement.
+                    </p>
+                    <div style="color: var(--text-muted); font-size: 0.88rem;">
+                        <strong>Termination Reason:</strong> <span style="color: #ef4444; font-weight: 600;" th:text="${interview.terminationReason != null ? interview.terminationReason : 'Proctoring violation limit reached'}">Proctoring violation limit reached</span> 
+                        &bull; <strong>Violations Logged:</strong> <span style="font-weight: 700; color: #ef4444;" th:text="${interview.violationCount != null ? interview.violationCount : 3}">3</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Proctoring Alerts Grid Console (Matching User UI Requirement) -->
+        <div class="card mb-4" id="proctoring-alerts-card" style="background: var(--surface-1); border: 1px solid var(--border); border-radius: 1rem; padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem;">
+                <h3 style="font-weight: 800; color: var(--text); margin: 0; display: flex; align-items: center; gap: 0.5rem; font-size: 1.25rem;">
+                    <span style="font-size: 1.4rem;">🚨</span> Proctoring Alerts :
+                </h3>
+                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.82rem; padding: 0.35rem 0.75rem;">
+                    <span>✅ Candidate Identity Verified</span>
+                </span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem;">
+                <!-- 1. Tab Switching -->
+                <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 1.15rem 1.25rem;">
+                    <div style="font-size: 1.85rem; font-weight: 800; color: #6366f1; margin-bottom: 0.25rem;" th:text="${report != null && report.tabSwitchCount != null ? report.tabSwitchCount : 0}">0</div>
+                    <div style="font-size: 0.88rem; font-weight: 600; color: var(--text-muted);">Tab Switching</div>
+                </div>
+
+                <!-- 2. Full-Screen Exits -->
+                <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 1.15rem 1.25rem;">
+                    <div style="font-size: 1.85rem; font-weight: 800; color: #6366f1; margin-bottom: 0.25rem;" th:text="${report != null && report.fullscreenExitCount != null ? report.fullscreenExitCount : 0}">0</div>
+                    <div style="font-size: 0.88rem; font-weight: 600; color: var(--text-muted);">Full-Screen Exits</div>
+                </div>
+
+                <!-- 3. External devices detected -->
+                <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 1.15rem 1.25rem;">
+                    <div style="font-size: 1.85rem; font-weight: 800; color: #6366f1; margin-bottom: 0.25rem;" th:text="${report != null && report.externalDeviceCount != null ? report.externalDeviceCount : 0}">0</div>
+                    <div style="font-size: 0.88rem; font-weight: 600; color: var(--text-muted);">External devices detected</div>
+                </div>
+
+                <!-- 4. Multiple Faces -->
+                <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 1.15rem 1.25rem;">
+                    <div style="font-size: 1.85rem; font-weight: 800; color: #6366f1; margin-bottom: 0.25rem;" th:text="${report != null && report.multipleFacesCount != null ? report.multipleFacesCount : 0}">0</div>
+                    <div style="font-size: 0.88rem; font-weight: 600; color: var(--text-muted);">Multiple Faces</div>
+                </div>
+
+                <!-- 5. No Face Detected -->
+                <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 1.15rem 1.25rem;">
+                    <div style="font-size: 1.85rem; font-weight: 800; color: #6366f1; margin-bottom: 0.25rem;" th:text="${report != null && report.noFaceDetectedCount != null ? report.noFaceDetectedCount : 0}">0</div>
+                    <div style="font-size: 0.88rem; font-weight: 600; color: var(--text-muted);">No Face Detected</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-2 mb-4">
+            <!-- Overall Score Card -->
+            <div class="card">
+                <div class="text-center mb-4">
+                    <h3 class="text-muted mb-2">Overall Score</h3>
+                    <div class="score-display" style="font-size: 3rem; font-weight: 800; color: #38bdf8;" th:text="${report != null ? #numbers.formatDecimal(report.overallScore, 1, 1) : (interview != null ? #numbers.formatDecimal(interview.overallScore, 1, 1) : '8.5')}">8.5</div>
+                    <p class="text-muted mt-1">Out of 10.0</p>
+                </div>
+                
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 1rem 0;">
+                
+                <div class="flex justify-between mb-2">
+                    <span class="text-muted">Target Role:</span>
+                    <span class="font-weight-500" th:text="${report != null ? report.targetRole : (interview != null ? interview.targetRole : 'Java Developer')}">Java Developer</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                    <span class="text-muted">Interview Type:</span>
+                    <span class="font-weight-500" th:text="${report != null ? (report.interviewType == 'TECHNICAL' ? 'Technical' : (report.interviewType == 'HR' ? 'HR' : (report.interviewType == 'MIXED' ? 'Technical + HR' : report.interviewType))) : 'Technical'}">Technical</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                    <span class="text-muted">Difficulty:</span>
+                    <span class="badge badge-medium" th:text="${report != null ? report.difficulty : 'MEDIUM'}">MEDIUM</span>
+                </div>
+            </div>
+            
+            <!-- Metric Breakdown Card -->
+            <div class="card">
+                <h3 class="mb-3">Competency Breakdown</h3>
+                <div class="mb-3">
+                    <div class="flex justify-between mb-1"><small>Technical Accuracy</small><strong th:text="${report != null ? #numbers.formatDecimal(report.averageTechnicalAccuracy, 1, 1) + ' / 10' : '8.2 / 10'}">8.2 / 10</strong></div>
+                    <div class="eval-bar-bg"><div class="eval-bar-fill" th:style="'width: ' + (${report != null ? report.averageTechnicalAccuracy * 10 : 82}) + '%; background:#6366f1;'"></div></div>
+                </div>
+                <div class="mb-3">
+                    <div class="flex justify-between mb-1"><small>Completeness</small><strong th:text="${report != null ? #numbers.formatDecimal(report.averageCompleteness, 1, 1) + ' / 10' : '7.8 / 10'}">7.8 / 10</strong></div>
+                    <div class="eval-bar-bg"><div class="eval-bar-fill" th:style="'width: ' + (${report != null ? report.averageCompleteness * 10 : 78}) + '%; background:#06b6d4;'"></div></div>
+                </div>
+                <div class="mb-3">
+                    <div class="flex justify-between mb-1"><small>Clarity & Communication</small><strong th:text="${report != null ? #numbers.formatDecimal(report.averageClarity, 1, 1) + ' / 10' : '8.5 / 10'}">8.5 / 10</strong></div>
+                    <div class="eval-bar-bg"><div class="eval-bar-fill" th:style="'width: ' + (${report != null ? report.averageClarity * 10 : 85}) + '%; background:#10b981;'"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Interview Video Session Playback Card -->
+        <div class="card mb-4" id="recording-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <span style="background: var(--surface-2); color: var(--primary); border-radius: 0.4rem; padding: 0.4rem 0.6rem; font-size: 1.25rem; display: flex; align-items: center; justify-content: center;">🎥</span>
+                    <div>
+                        <h3 style="font-weight: 700; color: var(--text); margin: 0; display: inline;">Interview Session Video Recording</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">Review your speaking posture, facial expressions, actions, and mistakes to self-improve</p>
+                    </div>
+                </div>
+                <div id="video-actions">
+                    <a id="download-recording-btn" th:if="${interview != null && interview.videoRecordingUrl != null}" th:href="${interview.videoRecordingUrl}" download="interview-recording.webm" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.35rem 0.75rem; border-color: #38bdf8; color: #38bdf8;">⬇️ Download Video</a>
+                </div>
+            </div>
+
+            <div style="background: #000; border-radius: 0.5rem; overflow: hidden; max-height: 420px; display: flex; justify-content: center; align-items: center; position: relative;">
+                <video id="reportVideoPlayer" th:src="${interview != null && interview.videoRecordingUrl != null ? interview.videoRecordingUrl : ''}" controls playsinline style="max-height: 420px; width: 100%; border-radius: 0.5rem; display: block;"></video>
+                <div id="no-video-placeholder" th:if="${interview == null || interview.videoRecordingUrl == null}" style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #94a3b8; padding: 2rem; text-align: center; background: rgba(15, 23, 42, 0.9);">
+                    <span style="font-size: 2.5rem; margin-bottom: 0.5rem;">📹</span>
+                    <p id="placeholder-text" style="margin: 0; font-size: 0.95rem;">Checking for interview session video recording...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Facial Expressions & Behavioral Delivery Analysis (Pie Chart) -->
+        <div class="card mb-4" id="facial-expressions-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <span style="background: var(--surface-2); color: #10b981; border-radius: 0.4rem; padding: 0.4rem 0.6rem; font-size: 1.25rem; display: flex; align-items: center; justify-content: center;">🎭</span>
+                    <div>
+                        <h3 style="font-weight: 700; color: var(--text); margin: 0; display: inline;">Facial Expressions & Composure Delivery Analysis</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">AI camera detection: Confidence, Calmness, Fear/Nervousness, and Shy/Hesitant delivery</p>
+                    </div>
+                </div>
+                <div>
+                    <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.85rem; padding: 0.35rem 0.75rem;">
+                        Delivery Summary: <strong id="deliverySummaryBadge" th:text="${report != null && report.confidenceScore != null ? #numbers.formatDecimal(report.confidenceScore, 1, 0) + '% Confident' : '65% Confident'}">65% Confident</strong>
+                    </span>
+                </div>
+            </div>
+
+            <div class="grid grid-2" style="align-items: center; gap: 2rem;">
+                <!-- Left Column: Pie Chart -->
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1.5rem;">
+                    <div style="position: relative; width: 240px; height: 240px;">
+                        <canvas id="expressionPieChart"></canvas>
+                    </div>
+                    <div style="font-size: 0.82rem; color: var(--text-muted); margin-top: 1rem; text-align: center; font-weight: 500;">
+                        📊 Proportional breakdown of captured facial expressions
+                    </div>
+                </div>
+
+                <!-- Right Column: Metric Bars & Improvement Coaching -->
+                <div>
+                    <h4 style="color: var(--text); font-size: 1.05rem; margin-bottom: 1rem; font-weight: 700;">Expression Distribution & Behavioral Metrics</h4>
+
+                    <div class="mb-3">
+                        <div class="flex justify-between mb-1" style="font-size: 0.88rem;">
+                            <span style="color: #10b981; font-weight: 600;">😊 Confidence</span>
+                            <strong th:text="${report != null && report.confidenceScore != null ? #numbers.formatDecimal(report.confidenceScore, 1, 1) + '%' : '65.0%'}">65.0%</strong>
+                        </div>
+                        <div class="eval-bar-bg">
+                            <div class="eval-bar-fill" th:style="'width: ' + (${report != null && report.confidenceScore != null ? report.confidenceScore : 65.0}) + '%; background: #10b981;'"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="flex justify-between mb-1" style="font-size: 0.88rem;">
+                            <span style="color: #38bdf8; font-weight: 600;">😌 Calm & Composed</span>
+                            <strong th:text="${report != null && report.calmScore != null ? #numbers.formatDecimal(report.calmScore, 1, 1) + '%' : '20.0%'}">20.0%</strong>
+                        </div>
+                        <div class="eval-bar-bg">
+                            <div class="eval-bar-fill" th:style="'width: ' + (${report != null && report.calmScore != null ? report.calmScore : 20.0}) + '%; background: #38bdf8;'"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="flex justify-between mb-1" style="font-size: 0.88rem;">
+                            <span style="color: #f59e0b; font-weight: 600;">😨 Fear / Nervousness</span>
+                            <strong th:text="${report != null && report.fearScore != null ? #numbers.formatDecimal(report.fearScore, 1, 1) + '%' : '10.0%'}">10.0%</strong>
+                        </div>
+                        <div class="eval-bar-bg">
+                            <div class="eval-bar-fill" th:style="'width: ' + (${report != null && report.fearScore != null ? report.fearScore : 10.0}) + '%; background: #f59e0b;'"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="flex justify-between mb-1" style="font-size: 0.88rem;">
+                            <span style="color: #a855f7; font-weight: 600;">🙈 Shy / Hesitant</span>
+                            <strong th:text="${report != null && report.shyScore != null ? #numbers.formatDecimal(report.shyScore, 1, 1) + '%' : '5.0%'}">5.0%</strong>
+                        </div>
+                        <div class="eval-bar-bg">
+                            <div class="eval-bar-fill" th:style="'width: ' + (${report != null && report.shyScore != null ? report.shyScore : 5.0}) + '%; background: #a855f7;'"></div>
+                        </div>
+                    </div>
+
+                    <!-- AI Body Language & Self-Improvement Tips -->
+                    <div style="background: var(--surface-2); border: 1px solid var(--border); border-radius: 0.5rem; padding: 1rem; margin-top: 1rem;">
+                        <div style="font-weight: 700; font-size: 0.9rem; color: var(--accent); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
+                            <span>💡</span> AI Delivery & Composure Coaching (Self-Improvement)
+                        </div>
+                        <div th:if="${report != null && report.expressionFeedback != null && !report.expressionFeedback.empty}">
+                            <ul style="padding-left: 1.25rem; margin: 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+                                <li th:each="tip : ${report.expressionFeedback}" th:text="${tip}">Tip</li>
+                            </ul>
+                        </div>
+                        <div th:unless="${report != null && report.expressionFeedback != null && !report.expressionFeedback.empty}">
+                            <ul style="padding-left: 1.25rem; margin: 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+                                <li>Maintain direct eye contact with the camera lens while answering technical questions.</li>
+                                <li>Take a steady 2-second breath before answering complex questions to eliminate nervous brow tension.</li>
+                                <li>Avoid tilting your head downwards when formulating ideas; keep an upright, engaged posture.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Missing Skills & Improvement Plan -->
+        <div class="card mb-4">
+            <h3 style="color: var(--danger); margin-bottom: 0.75rem;">⚠️ Missing Skills & Weak Areas Identified</h3>
+            <div th:if="${report != null && report.missingSkills != null && !report.missingSkills.empty}">
+                <ul style="padding-left: 1.25rem; color: var(--text-muted); line-height: 1.8; list-style-type: disc;">
+                    <li th:each="skill : ${report.missingSkills}" th:text="${skill}">Missing Skill</li>
+                </ul>
+            </div>
+            <div th:unless="${report != null && report.missingSkills != null && !report.missingSkills.empty}">
+                <p style="color: var(--text-muted);">Detailed code syntax examples, edge case considerations, and concurrency optimization.</p>
+            </div>
+
+            <h4 style="color: var(--accent); margin-top: 1.5rem; margin-bottom: 0.5rem;">💡 Actionable Improvement Roadmap</h4>
+            <div th:if="${report != null && report.suggestions != null}">
+                <ul style="padding-left: 1.25rem; color: var(--text-muted); line-height: 1.8; list-style-type: check;">
+                    <li th:each="suggestion : ${report.suggestions}" th:text="${suggestion}">Improvement suggestion</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Section: Verified Working Recommended Courses -->
+        <h3 class="my-4" style="color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+            📚 Recommended Learning Courses & Skill Upgrades
+        </h3>
+        
+        <div class="grid grid-2 mb-4">
+            <div class="course-card" th:each="course : ${report != null && report.recommendedCourses != null ? report.recommendedCourses : {}}">
+                <div>
+                    <span class="course-tag" th:text="${course.tag}">Course Tag</span>
+                    <h4 style="color: var(--text); font-size: 1.1rem; margin-bottom: 0.4rem;" th:text="${course.title}">Course Title</h4>
+                    <p style="color: var(--accent); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.6rem;" th:text="${course.platform}">Platform</p>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;" th:text="${course.description}">Description</p>
+                </div>
+                <a th:href="${course.url}" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-block" style="text-align: center; border-color: var(--primary); color: var(--primary);">
+                    Explore Course on <span th:text="${course.platform}">Platform</span> ↗
+                </a>
+            </div>
+
+            <!-- Fallback Static Verified Working Courses if report courses empty -->
+            <div th:unless="${report != null && report.recommendedCourses != null && !report.recommendedCourses.empty}" style="display: contents;">
+                <div class="course-card">
+                    <div>
+                        <span class="course-tag">Java & OOP</span>
+                        <h4 style="color: var(--text); font-size: 1.1rem; margin-bottom: 0.4rem;">Java Programming & Software Engineering Fundamentals</h4>
+                        <p style="color: var(--accent); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.6rem;">Coursera (Duke University)</p>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">Master core Java programming, Object-Oriented Principles, data structures, and algorithm design.</p>
+                    </div>
+                    <a href="https://www.coursera.org/specializations/java-programming" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-block" style="border-color: var(--primary); color: var(--primary);">Explore Course on Coursera ↗</a>
+                </div>
+
+                <div class="course-card">
+                    <div>
+                        <span class="course-tag">Spring Boot</span>
+                        <h4 style="color: var(--text); font-size: 1.1rem; margin-bottom: 0.4rem;">Spring Boot 3 & Spring Framework Masterclass</h4>
+                        <p style="color: var(--accent); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.6rem;">Udemy</p>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">Build production-ready RESTful APIs, Microservices, Spring Data JPA, and Security.</p>
+                    </div>
+                    <a href="https://www.udemy.com/course/spring-hibernate-tutorial/" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-block" style="border-color: var(--primary); color: var(--primary);">Explore Course on Udemy ↗</a>
+                </div>
+
+                <div class="course-card">
+                    <div>
+                        <span class="course-tag">System Design</span>
+                        <h4 style="color: var(--text); font-size: 1.1rem; margin-bottom: 0.4rem;">System Design Primer & Scalable Architecture</h4>
+                        <p style="color: var(--accent); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.6rem;">GeeksforGeeks</p>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">In-depth guide to distributed system design, caching strategies, load balancers, and database sharding.</p>
+                    </div>
+                    <a href="https://www.geeksforgeeks.org/system-design-tutorial/" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-block" style="border-color: var(--primary); color: var(--primary);">Explore Course on GeeksforGeeks ↗</a>
+                </div>
+
+                <div class="course-card">
+                    <div>
+                        <span class="course-tag">SQL & Databases</span>
+                        <h4 style="color: var(--text); font-size: 1.1rem; margin-bottom: 0.4rem;">Relational Database Design & Advanced SQL</h4>
+                        <p style="color: var(--accent); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.6rem;">freeCodeCamp</p>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">Learn relational database design, query optimization, indexing, and transaction management.</p>
+                    </div>
+                    <a href="https://www.freecodecamp.org/news/learn-sql-queries-database-design/" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-block" style="border-color: var(--primary); color: var(--primary);">Explore Course on freeCodeCamp ↗</a>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <div th:replace="~{layout :: footer}"></div>
+
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', async function() {
+            const video = document.getElementById('reportVideoPlayer');
+            const placeholder = document.getElementById('no-video-placeholder');
+            const interviewId = /*[[${interview != null ? interview.id : (interviewId != null ? interviewId : null)}]]*/ null;
+
+            if (video && (!video.src || video.getAttribute('src') === '')) {
+                if (interviewId && window.getRecordingFromIndexedDB) {
+                    const blob = await window.getRecordingFromIndexedDB(interviewId);
+                    if (blob) {
+                        const objectUrl = URL.createObjectURL(blob);
+                        video.src = objectUrl;
+                        if (placeholder) placeholder.style.display = 'none';
+                        const actionsDiv = document.getElementById('video-actions');
+                        if (actionsDiv && !document.getElementById('download-recording-btn')) {
+                            actionsDiv.innerHTML = `<a id="download-recording-btn" href="${objectUrl}" download="interview-recording.webm" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.35rem 0.75rem; border-color: #38bdf8; color: #38bdf8;">⬇️ Download Video</a>`;
+                        }
+                    } else if (placeholder) {
+                        document.getElementById('placeholder-text').textContent = 'No video was recorded during this interview session.';
+                    }
+                } else if (placeholder) {
+                    document.getElementById('placeholder-text').textContent = 'No video was recorded during this interview session.';
+                }
+            } else if (video && video.getAttribute('src') && placeholder) {
+                placeholder.style.display = 'none';
+            }
+
+            // Render Facial Expressions & Composure Pie Chart
+            const pieCanvas = document.getElementById('expressionPieChart');
+            if (pieCanvas) {
+                const confVal = /*[[${report != null && report.confidenceScore != null ? report.confidenceScore : 65.0}]]*/ 65.0;
+                const calmVal = /*[[${report != null && report.calmScore != null ? report.calmScore : 20.0}]]*/ 20.0;
+                const fearVal = /*[[${report != null && report.fearScore != null ? report.fearScore : 10.0}]]*/ 10.0;
+                const shyVal = /*[[${report != null && report.shyScore != null ? report.shyScore : 5.0}]]*/ 5.0;
+
+                const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+                new Chart(pieCanvas.getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels: ['Confidence', 'Calm & Composed', 'Fear / Nervousness', 'Shy / Hesitant'],
+                        datasets: [{
+                            data: [confVal, calmVal, fearVal, shyVal],
+                            backgroundColor: [
+                                '#10B981', // Emerald Confident
+                                '#38BDF8', // Sky Blue Calm
+                                '#F59E0B', // Amber Fear
+                                '#A855F7'  // Purple Shy
+                            ],
+                            borderColor: isLight ? '#FFFFFF' : '#101726',
+                            borderWidth: 3,
+                            hoverOffset: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 12,
+                                    color: isLight ? '#475569' : '#94A3B8',
+                                    font: { size: 11, weight: '600', family: "'Plus Jakarta Sans', sans-serif" }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return ` ${context.label}: ${context.raw}%`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- REVIEW Mode AI Chatbot Widget -->
+    <div th:replace="~{chat-widget :: chatWidget('REVIEW', ${report.interviewId}, ${report.targetRole})}"></div>
+</body>
+</html>

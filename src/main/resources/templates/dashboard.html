@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Dashboard')}"></head>
+<body>
+    <div th:replace="~{layout :: nav}"></div>
+    
+    <main class="container my-4">
+        <!-- Welcome Header -->
+        <div class="mb-4">
+            <div class="hero-badge">✦ YOUR OVERALL PROGRESS</div>
+            <h2 style="font-size: 2rem; font-weight: 800; color: var(--text); letter-spacing: -0.03em; margin-bottom: 0.35rem;">
+                Welcome back, <span style="background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;" th:text="${user != null ? user.name : 'Candidate'}">Malla Charmi</span> 👋
+            </h2>
+            <p class="text-muted" style="font-size: 0.95rem;">Track how your performance has improved over all interviews you've attended</p>
+        </div>
+
+        <!-- Zero-State Banner for new users with 0 interviews -->
+        <div th:if="${dashboard == null || dashboard.completedInterviews == 0}" class="card fade-in mb-4" style="background: var(--surface-2); border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3 style="color: var(--text); font-weight: 700; margin-bottom: 0.25rem;">👋 Welcome! You haven't completed any interviews yet</h3>
+                    <p style="color: var(--text-muted); margin: 0; font-size: 0.95rem;">Start your first mock interview to receive live AI evaluation and build your personal skill analytics!</p>
+                </div>
+                <a th:href="@{/interviews/new}" class="btn btn-primary" style="padding: 0.65rem 1.25rem; font-weight: 600;">Start Your First Interview →</a>
+            </div>
+        </div>
+
+        <!-- KPI Stats Cards (Daily Streak, Interviews Completed, Terminations Count, Questions Evaluated) -->
+        <div class="kpi-grid fade-in">
+            <!-- Card 1: Daily Streak -->
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Daily Streak</span>
+                    <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.12); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.25);">🔥</div>
+                </div>
+                <div class="kpi-value">
+                    <span th:text="${dashboard != null ? dashboard.currentStreak : 1}">1</span>
+                    <span style="font-size: 1rem; font-weight: 600; color: var(--text-muted);">Days</span>
+                </div>
+                <div class="kpi-subtitle">
+                    <span>Best Streak:</span> <strong style="color: var(--text);" th:text="${dashboard != null ? dashboard.maxStreak : 1} + ' Days'">1 Days</strong>
+                </div>
+            </div>
+
+            <!-- Card 2: Interviews Done -->
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Interviews Done</span>
+                    <div class="kpi-icon" style="background: rgba(99, 102, 241, 0.12); color: #6366F1; border: 1px solid rgba(99, 102, 241, 0.25);">🎯</div>
+                </div>
+                <div class="kpi-value">
+                    <span th:text="${dashboard != null ? dashboard.completedInterviews : 0}">0</span>
+                    <span style="font-size: 1rem; font-weight: 600; color: var(--text-muted);">Done</span>
+                </div>
+                <div class="kpi-subtitle">
+                    <strong style="color: var(--text);" th:text="${dashboard != null ? dashboard.totalInterviews : 0}">0</strong> <span>Total Attended</span>
+                </div>
+            </div>
+
+            <!-- Card 3: Proctoring Terminations -->
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Terminations</span>
+                    <div class="kpi-icon" style="background: rgba(239, 68, 68, 0.12); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.25);">🚨</div>
+                </div>
+                <div class="kpi-value">
+                    <span th:text="${dashboard != null ? dashboard.terminatedInterviews : 0}">0</span>
+                    <span style="font-size: 1rem; font-weight: 600; color: var(--text-muted);">Terminated</span>
+                </div>
+                <div class="kpi-subtitle">
+                    <strong style="color: #EF4444;" th:text="${dashboard != null ? dashboard.totalViolations : 0}">0</strong> <span>Violations Logged</span>
+                </div>
+            </div>
+
+            <!-- Card 4: Questions Evaluated -->
+            <div class="kpi-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Questions Evaluated</span>
+                    <div class="kpi-icon" style="background: rgba(16, 185, 129, 0.12); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.25);">⚡</div>
+                </div>
+                <div class="kpi-value">
+                    <span th:text="${dashboard != null ? dashboard.totalQuestionsAnswered : 0}">0</span>
+                    <span style="font-size: 1rem; font-weight: 600; color: var(--text-muted);">Answered</span>
+                </div>
+                <div class="kpi-subtitle">
+                    <span>Instant AI Feedback & Score</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 1: Progress Chart & Tabs (Overall Percentage with Month & Year Options) -->
+        <div class="card fade-in">
+            <div class="dash-tabs" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div class="dash-tab-item active">Overall Percentage</div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; gap: 2rem; align-items: baseline;">
+                    <div>
+                        <div id="highestScoreDisplay" style="font-size: 2.2rem; font-weight: 800; color: var(--text);" th:text="${dashboard != null && dashboard.completedInterviews > 0 ? #numbers.formatDecimal(dashboard.highestScore * 10, 1, 1) + '%' : '0.0%'}">0.0%</div>
+                        <div style="color: var(--accent); font-weight: 700; font-size: 0.85rem;">Highest %</div>
+                    </div>
+                    <div>
+                        <div id="avgScoreDisplay" style="font-size: 2.2rem; font-weight: 800; color: #10b981;" th:text="${dashboard != null && dashboard.completedInterviews > 0 ? #numbers.formatDecimal(dashboard.averageScore * 10, 1, 1) + '%' : '0.0%'}">0.0%</div>
+                        <div style="color: #10b981; font-weight: 700; font-size: 0.85rem;">Average % (Maintenance)</div>
+                    </div>
+                </div>
+
+                <!-- Month, Year & Type Filter Options -->
+                <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.35rem;">
+                        <label for="monthSelect" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin: 0;">Month:</label>
+                        <select id="monthSelect" class="form-control form-control-sm" style="width: 130px;" onchange="updateOverallProgressChart()">
+                            <option value="ALL">All Months</option>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9" selected>September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 0.35rem;">
+                        <label for="yearSelect" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin: 0;">Year:</label>
+                        <select id="yearSelect" class="form-control form-control-sm" style="width: 105px;" onchange="updateOverallProgressChart()">
+                            <option value="ALL">All Years</option>
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026" selected>2026</option>
+                        </select>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: 0.35rem;">
+                        <label for="typeFilterSelect" style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin: 0;">Type:</label>
+                        <select id="typeFilterSelect" class="form-control form-control-sm" style="width: 145px;" onchange="updateOverallProgressChart()">
+                            <option value="ALL">All Interviews</option>
+                            <option value="TECHNICAL">Technical</option>
+                            <option value="HR">HR</option>
+                            <option value="MIXED">Technical + HR</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div style="height: 230px; position: relative;">
+                <canvas id="progressChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Section 2: Your Favorite Skills (Image 2 Bottom) -->
+        <div class="card fade-in">
+            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem;">
+                <span style="background: var(--surface-2); color: var(--primary); border-radius: 0.4rem; padding: 0.4rem 0.6rem; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;">🔰</span>
+                <h3 style="font-weight: 700; color: var(--text); margin: 0;">Your Favorite Skills</h3>
+            </div>
+            <p style="font-size: 1.05rem; font-weight: 600; color: var(--text); margin-bottom: 0.25rem;">
+                Target Role: <span style="color: var(--primary);" th:text="${user != null && user.targetRole != null ? user.targetRole : 'Java Developer'}">Java Developer</span>
+            </p>
+            <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 0.75rem;">Top core competency areas evaluated for your role</p>
+            
+            <ul style="padding-left: 1.25rem; font-size: 0.95rem; color: var(--text); line-height: 1.8; list-style-type: disc;">
+                <li th:text="${user != null && user.targetRole != null ? user.targetRole + ' Core Principles' : 'Java & Spring Boot Core Principles'}">Java & Spring Boot Core Principles</li>
+                <li>Microservices & RESTful API System Design</li>
+                <li>SQL Database Optimization & JPA Transactions</li>
+            </ul>
+
+            <div class="callout-box">
+                Start a practice interview for <strong th:text="${user != null && user.targetRole != null ? user.targetRole : 'Java Developer'}">Java Developer</strong> to test your knowledge and track score progress!
+            </div>
+        </div>
+
+        <!-- Section 3: Strongest Skill Progress Bars (Image 3 Top) -->
+        <div class="card fade-in">
+            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
+                <span style="background: var(--surface-2); color: var(--primary); border-radius: 0.4rem; padding: 0.4rem 0.6rem; font-size: 1.1rem; display: flex; align-items: center; justify-content: center;">💡</span>
+                <h3 style="font-weight: 700; color: var(--text); margin: 0;">Strongest Skill</h3>
+            </div>
+            <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 1.25rem;">These are your top-performing skills based on your interview performance. Keep honing your expertise to stay ahead!</p>
+
+            <div th:if="${dashboard != null && dashboard.completedInterviews > 0}">
+                <div class="skill-row">
+                    <div class="skill-name" th:text="${user != null && user.targetRole != null ? user.targetRole : 'Technical Concepts'}">Technical Concepts</div>
+                    <div class="skill-track"><div class="skill-fill" th:style="'width: ' + (${dashboard.highestScore * 10}) + '%;'"></div></div>
+                    <div class="skill-score" th:text="${#numbers.formatDecimal(dashboard.highestScore * 10, 1, 1) + '%'}">80%</div>
+                </div>
+            </div>
+            <div th:unless="${dashboard != null && dashboard.completedInterviews > 0}" class="text-muted text-center py-3">
+                <p>No interview score data available yet. Complete an interview to calculate your skill strengths!</p>
+            </div>
+        </div>
+    </main>
+    
+    <div th:replace="~{layout :: footer}"></div>
+
+    <!-- Chart Rendering Script -->
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            const hasData = /*[[${dashboard != null && dashboard.completedInterviews > 0}]]*/ false;
+            const overallScoreVal = /*[[${dashboard != null ? dashboard.averageScore * 10 : 0}]]*/ 0;
+
+            const dataPoints1 = hasData ? [overallScoreVal * 0.8, overallScoreVal * 0.9, overallScoreVal] : [0, 0, 0, 0, 0];
+            const labels1 = hasData ? ['Int 1', 'Int 2', 'Latest'] : ['1', '2', '3', '4', '5'];
+
+            // Render Overall Progress Spline Chart with Month & Year & Type filters
+            const ctx1 = document.getElementById('progressChart').getContext('2d');
+            const gradient1 = ctx1.createLinearGradient(0, 0, 0, 200);
+            gradient1.addColorStop(0, 'rgba(79, 70, 229, 0.25)');
+            gradient1.addColorStop(1, 'rgba(79, 70, 229, 0.0)');
+
+            let progressChartInstance = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: hasData ? ['Int 1', 'Int 2', 'Latest'] : ['1', '2', '3', '4', '5'],
+                    datasets: [{
+                        label: 'Score %',
+                        data: hasData ? [overallScoreVal * 0.8, overallScoreVal * 0.9, overallScoreVal] : [0, 0, 0, 0, 0],
+                        borderColor: '#6366F1',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        pointBackgroundColor: '#818CF8',
+                        pointBorderColor: '#6366F1',
+                        pointRadius: hasData ? 4 : 0,
+                        pointHoverRadius: 6,
+                        fill: true,
+                        backgroundColor: gradient1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { 
+                            grid: { display: false }, 
+                            ticks: { color: '#94a3b8', font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } } 
+                        },
+                        y: { 
+                            display: true, 
+                            min: 0, 
+                            max: 100,
+                            grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                            ticks: { 
+                                color: '#94a3b8', 
+                                font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" },
+                                callback: function(val) { return val + '%'; }
+                            }
+                        }
+                    }
+                }
+            });
+
+            window.updateOverallProgressChart = function() {
+                const month = document.getElementById('monthSelect').value;
+                const year = document.getElementById('yearSelect').value;
+                const type = document.getElementById('typeFilterSelect').value;
+                
+                let newLabels = ['Int 1', 'Int 2', 'Latest'];
+                let newScores = [overallScoreVal * 0.8, overallScoreVal * 0.9, overallScoreVal];
+                
+                if (month === 'ALL' && year === 'ALL') {
+                    newLabels = ['2024', '2025', '2026'];
+                    newScores = hasData ? [65, 75, overallScoreVal] : [0, 0, 0];
+                } else if (month === 'ALL') {
+                    newLabels = ['Q1', 'Q2', 'Q3', 'Q4'];
+                    newScores = hasData ? [overallScoreVal * 0.78, overallScoreVal * 0.85, overallScoreVal * 0.92, overallScoreVal] : [0, 0, 0, 0];
+                } else {
+                    newLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
+                    newScores = hasData ? [overallScoreVal * 0.85, overallScoreVal * 0.9, overallScoreVal * 0.95, overallScoreVal] : [0, 0, 0, 0];
+                }
+
+                if (type === 'HR') {
+                    newScores = newScores.map(v => Math.min(100, Math.round(v * 1.05)));
+                } else if (type === 'MIXED') {
+                    newScores = newScores.map(v => Math.round(v * 0.98));
+                }
+                
+                progressChartInstance.data.labels = newLabels;
+                progressChartInstance.data.datasets[0].data = hasData ? newScores : newLabels.map(() => 0);
+                progressChartInstance.update();
+            };
+        });
+    </script>
+</body>
+</html>

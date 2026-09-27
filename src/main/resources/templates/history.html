@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Interview History')}"></head>
+<body>
+    <div th:replace="~{layout :: nav}"></div>
+    
+    <main class="container my-4">
+        <div class="flex justify-between align-center mb-4 flex-wrap gap-2">
+            <div>
+                <div class="hero-badge">✦ ASSESSMENT ARCHIVE</div>
+                <h2 style="font-size: 1.9rem; font-weight: 800; letter-spacing: -0.025em; color: var(--text); margin-bottom: 0.25rem;">Interview History</h2>
+                <p class="text-muted" style="margin: 0; font-size: 0.92rem;">Review past assessments, play back session recordings, and manage specific interview records</p>
+            </div>
+            <div class="flex gap-2 align-center flex-wrap">
+                <!-- Delete Selected Button (Active when 1 or more interviews are checked) -->
+                <button id="deleteSelectedBtn" class="btn btn-danger btn-sm" onclick="deleteSelectedInterviews()" style="display: none; align-items: center; gap: 0.35rem; padding: 0.45rem 0.95rem; font-weight: 600; border-radius: 8px;">
+                    🗑️ Delete Selected (<span id="selectedCount">0</span>)
+                </button>
+                <button th:unless="${#lists.isEmpty(interviews)}" class="btn btn-danger-outline btn-sm" onclick="clearHistory()" style="padding: 0.45rem 0.95rem; font-weight: 600; border-radius: 8px;">🗑️ Clear All</button>
+                <a th:href="@{/interviews/new}" class="btn btn-primary btn-sm" style="padding: 0.45rem 1.15rem; font-weight: 600; border-radius: 8px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);">+ Start New Interview</a>
+            </div>
+        </div>
+        
+        <div class="card" style="padding: 0; overflow: hidden; border-radius: var(--border-radius-lg);">
+            <div th:if="${#lists.isEmpty(interviews)}" class="text-center py-4" style="padding: 4rem 1.5rem;">
+                <div style="font-size: 3rem; margin-bottom: 0.75rem;">📋</div>
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text); margin-bottom: 0.35rem;">No Interview History Yet</h3>
+                <p class="text-muted mb-4" style="font-size: 0.95rem;">You have no interview history yet. Start your first session to track your growth!</p>
+                <a th:href="@{/interviews/new}" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-weight: 600; border-radius: 8px;">Start Your First Interview</a>
+            </div>
+            
+            <div th:unless="${#lists.isEmpty(interviews)}" class="table-responsive" style="border: none; border-radius: 0; box-shadow: none; overflow-x: hidden; scrollbar-width: none;">
+                <table class="table" style="margin-bottom: 0; width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width: 36px; padding: 0.75rem 0.5rem; text-align: center;">
+                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this)" title="Select All" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+                            </th>
+                            <th style="min-width: 110px; padding: 0.75rem 0.6rem;">Date & Time</th>
+                            <th style="min-width: 120px; padding: 0.75rem 0.6rem;">Target Role</th>
+                            <th style="padding: 0.75rem 0.5rem;">Type</th>
+                            <th style="padding: 0.75rem 0.5rem;">Difficulty</th>
+                            <th style="padding: 0.75rem 0.5rem;">Score</th>
+                            <th style="padding: 0.75rem 0.5rem;">Status</th>
+                            <th style="padding: 0.75rem 0.5rem;">Recording</th>
+                            <th style="text-align: right; min-width: 110px; padding: 0.75rem 0.6rem;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="interview : ${interviews}" th:id="'row-interview-' + ${interview.id}">
+                            <td style="text-align: center; padding: 0.75rem 0.5rem;">
+                                <input type="checkbox" class="interview-checkbox" th:value="${interview.id}" onchange="updateSelectedCount()" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+                            </td>
+                            <td style="padding: 0.75rem 0.6rem;">
+                                <div style="font-weight: 600; color: var(--text); font-size: 0.85rem;" th:text="${#temporals.format(interview.createdAt, 'MMM dd, yyyy')}">Date</div>
+                                <small class="text-muted" style="font-size: 0.74rem;" th:text="${#temporals.format(interview.createdAt, 'hh:mm a')}">Time</small>
+                            </td>
+                            <td style="padding: 0.75rem 0.6rem;">
+                                <span style="font-weight: 600; color: var(--text); font-size: 0.88rem;" th:text="${interview.targetRole}">Role</span>
+                            </td>
+                            <td style="padding: 0.75rem 0.5rem;">
+                                <span class="badge badge-topic" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;" th:text="${interview.interviewType == 'TECHNICAL' ? 'Technical' : (interview.interviewType == 'HR' ? 'HR' : (interview.interviewType == 'MIXED' ? 'Technical + HR' : interview.interviewType))}">Type</span>
+                            </td>
+                            <td style="padding: 0.75rem 0.5rem;">
+                                <span class="badge" th:classappend="'badge-' + ${interview.difficulty.toLowerCase()}" style="font-size: 0.72rem; padding: 0.25rem 0.55rem;" th:text="${interview.difficulty}">Diff</span>
+                            </td>
+                            <td style="padding: 0.75rem 0.5rem;">
+                                <span th:if="${interview.status == 'COMPLETED'}" 
+                                      class="font-weight-600" 
+                                      th:classappend="${interview.overallScore >= 7 ? 'score-high' : (interview.overallScore >= 5 ? 'score-med' : 'score-low')}"
+                                      style="font-size: 0.88rem;"
+                                      th:text="${#numbers.formatDecimal(interview.overallScore, 1, 1)} + ' / 10'">0.0 / 10</span>
+                                <span th:unless="${interview.status == 'COMPLETED'}" class="text-muted" style="font-size: 0.88rem;">—</span>
+                            </td>
+                            <td style="padding: 0.75rem 0.5rem;">
+                                <span class="badge" th:classappend="${interview.status == 'COMPLETED' ? 'badge-success' : (interview.status == 'TERMINATED' ? 'badge-danger' : 'badge-warning')}" style="font-size: 0.72rem; padding: 0.25rem 0.55rem;" th:text="${interview.status}">Status</span>
+                            </td>
+                            <td style="padding: 0.75rem 0.5rem;">
+                                <button th:if="${interview.videoRecordingUrl != null}" 
+                                        th:data-url="${interview.videoRecordingUrl}"
+                                        th:data-role="${interview.targetRole}"
+                                        onclick="openVideoModal(this.getAttribute('data-url'), this.getAttribute('data-role'))"
+                                        class="btn-recording-chip has-video" 
+                                        style="font-size: 0.76rem; padding: 0.25rem 0.55rem;"
+                                        title="Watch session video recording">
+                                    🎥 Play Video
+                                </button>
+                                <button th:unless="${interview.videoRecordingUrl != null}" 
+                                        th:data-id="${interview.id}"
+                                        th:data-role="${interview.targetRole}"
+                                        onclick="checkLocalRecording(this.getAttribute('data-id'), this.getAttribute('data-role'))"
+                                        class="btn-recording-chip" 
+                                        style="font-size: 0.76rem; padding: 0.25rem 0.55rem;"
+                                        title="Check local session recording">
+                                    📹 Check Video
+                                </button>
+                            </td>
+                            <td style="text-align: right; padding: 0.75rem 0.6rem;">
+                                <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: flex-end;">
+                                    <a th:if="${interview.status == 'COMPLETED' || interview.status == 'TERMINATED'}" th:href="@{/interviews/{id}/report(id=${interview.id})}" class="btn btn-outline btn-sm" style="font-size: 0.78rem; padding: 0.3rem 0.65rem; border-radius: 6px; font-weight: 600;">View Report</a>
+                                    <a th:if="${interview.status == 'IN_PROGRESS'}" th:href="@{/interviews/{id}(id=${interview.id})}" class="btn btn-primary btn-sm" style="font-size: 0.78rem; padding: 0.3rem 0.65rem; border-radius: 6px; font-weight: 600;">Continue →</a>
+                                    <button type="button" th:data-id="${interview.id}" onclick="deleteSingleInterview(this.getAttribute('data-id'))" class="btn btn-outline-danger btn-sm" title="Delete this interview record" style="padding: 0 0.45rem; height: 28px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.82rem;">🗑️</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div style="padding: 0.95rem 1.5rem; background: var(--surface-2); border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; color: var(--text-muted);">
+                    <span>Showing all recorded interview sessions</span>
+                    <span th:text="${#lists.size(interviews)} + ' Total Session(s)'">0 Total</span>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Video Playback Modal -->
+    <div id="videoModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; padding: 1.5rem;">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 0.75rem; width: 100%; max-width: 720px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.6);">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);">
+                <div>
+                    <h4 style="margin: 0; font-size: 1.1rem; color: var(--text);" id="videoModalTitle">Interview Video Recording</h4>
+                    <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Review your actions, body language, facial expressions, and speaking mistakes</p>
+                </div>
+                <button type="button" onclick="closeVideoModal()" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            </div>
+            <div style="background: #000; padding: 0.5rem; display: flex; justify-content: center; align-items: center; min-height: 320px;">
+                <video id="modalVideoPlayer" controls playsinline autoplay style="max-height: 400px; width: 100%; border-radius: 0.35rem;"></video>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1.25rem; border-top: 1px solid var(--border);">
+                <a id="modalDownloadBtn" href="#" download="interview-recording.webm" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">⬇️ Download Video</a>
+                <button type="button" class="btn btn-secondary" onclick="closeVideoModal()" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{layout :: footer}"></div>
+
+    <script th:src="@{/js/app.js}"></script>
+    <script>
+        // Bulletproof global apiCall fallback if app.js is cached or delayed
+        if (typeof window.apiCall !== 'function') {
+            window.apiCall = async function(url, method = 'GET', body = null) {
+                const token = document.querySelector('meta[name="_csrf"]')?.content;
+                const header = document.querySelector('meta[name="_csrf_header"]')?.content;
+                const headers = { 'Content-Type': 'application/json' };
+                if (token && header) headers[header] = token;
+                const options = { method, headers };
+                if (body) options.body = JSON.stringify(body);
+                const res = await fetch(url, options);
+                if (!res.ok) {
+                    let errMsg = 'API Error';
+                    try { const errData = await res.json(); errMsg = errData.message || errMsg; } catch (e) {}
+                    throw new Error(errMsg);
+                }
+                const text = await res.text();
+                return text ? JSON.parse(text) : {};
+            };
+        }
+        if (typeof apiCall !== 'function') {
+            var apiCall = window.apiCall;
+        }
+
+        function toggleSelectAll(masterCheckbox) {
+            const checkboxes = document.querySelectorAll('.interview-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = masterCheckbox.checked;
+                const row = document.getElementById('row-interview-' + cb.value);
+                if (row) {
+                    row.classList.toggle('selected-row', cb.checked);
+                }
+            });
+            updateSelectedCount();
+        }
+
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.interview-checkbox');
+            const checked = document.querySelectorAll('.interview-checkbox:checked');
+            const count = checked.length;
+            
+            checkboxes.forEach(cb => {
+                const row = document.getElementById('row-interview-' + cb.value);
+                if (row) {
+                    row.classList.toggle('selected-row', cb.checked);
+                }
+            });
+
+            const countEl = document.getElementById('selectedCount');
+            const btnEl = document.getElementById('deleteSelectedBtn');
+            const masterCheckbox = document.getElementById('selectAllCheckbox');
+
+            if (countEl) countEl.textContent = count;
+            if (btnEl) {
+                btnEl.style.display = count > 0 ? 'inline-flex' : 'none';
+            }
+
+            if (masterCheckbox) {
+                if (count === 0) {
+                    masterCheckbox.checked = false;
+                    masterCheckbox.indeterminate = false;
+                } else if (count === checkboxes.length) {
+                    masterCheckbox.checked = true;
+                    masterCheckbox.indeterminate = false;
+                } else {
+                    masterCheckbox.checked = false;
+                    masterCheckbox.indeterminate = true;
+                }
+            }
+        }
+
+        async function deleteSelectedInterviews() {
+            const checked = document.querySelectorAll('.interview-checkbox:checked');
+            const ids = Array.from(checked).map(cb => parseInt(cb.value));
+
+            if (ids.length === 0) return;
+
+            const msg = ids.length === 1 
+                ? "Are you sure you want to delete the selected interview? This action cannot be undone."
+                : `Are you sure you want to delete ${ids.length} selected interviews? This action cannot be undone.`;
+
+            if (!confirm(msg)) return;
+
+            const btnEl = document.getElementById('deleteSelectedBtn');
+            if (btnEl) {
+                btnEl.disabled = true;
+                btnEl.textContent = 'Deleting...';
+            }
+
+            try {
+                await apiCall('/api/interviews/batch-delete', 'POST', { interviewIds: ids });
+                
+                ids.forEach(id => {
+                    const row = document.getElementById('row-interview-' + id);
+                    if (row) {
+                        row.classList.add('fade-out-row');
+                        setTimeout(() => row.remove(), 300);
+                    }
+                });
+
+                setTimeout(() => {
+                    const remaining = document.querySelectorAll('.interview-checkbox');
+                    if (remaining.length === 0) {
+                        window.location.reload();
+                    } else {
+                        updateSelectedCount();
+                    }
+                }, 350);
+            } catch (e) {
+                alert("Failed to delete selected interviews: " + e.message);
+                if (btnEl) {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = `🗑️ Delete Selected (<span id="selectedCount">${ids.length}</span>)`;
+                }
+            }
+        }
+
+        async function deleteSingleInterview(interviewId) {
+            if (!confirm("Are you sure you want to delete this interview record? This action cannot be undone.")) {
+                return;
+            }
+
+            try {
+                await apiCall(`/api/interviews/${interviewId}`, 'DELETE');
+                const row = document.getElementById('row-interview-' + interviewId);
+                if (row) {
+                    row.classList.add('fade-out-row');
+                    setTimeout(() => {
+                        row.remove();
+                        const remaining = document.querySelectorAll('.interview-checkbox');
+                        if (remaining.length === 0) {
+                            window.location.reload();
+                        } else {
+                            updateSelectedCount();
+                        }
+                    }, 300);
+                }
+            } catch (e) {
+                alert("Failed to delete interview: " + e.message);
+            }
+        }
+
+        async function clearHistory() {
+            if (confirm("Are you sure you want to clear your entire interview history? This action cannot be undone.")) {
+                try {
+                    await apiCall('/api/interviews/history/clear', 'POST');
+                    window.location.reload();
+                } catch (e) {
+                    alert("Failed to clear history: " + e.message);
+                }
+            }
+        }
+
+        function openVideoModal(url, role) {
+            document.getElementById('videoModalTitle').textContent = (role || 'Interview') + ' - Session Video Recording';
+            const video = document.getElementById('modalVideoPlayer');
+            video.src = url;
+            document.getElementById('modalDownloadBtn').href = url;
+            document.getElementById('videoModal').style.display = 'flex';
+            video.play().catch(e => console.log('Autoplay skipped'));
+        }
+
+        function closeVideoModal() {
+            const video = document.getElementById('modalVideoPlayer');
+            video.pause();
+            video.src = '';
+            document.getElementById('videoModal').style.display = 'none';
+        }
+
+        async function checkLocalRecording(interviewId, role) {
+            if (window.getRecordingFromIndexedDB) {
+                const blob = await window.getRecordingFromIndexedDB(interviewId);
+                if (blob) {
+                    const objectUrl = URL.createObjectURL(blob);
+                    openVideoModal(objectUrl, role);
+                    return;
+                }
+            }
+            alert('No video recording was captured or saved for this interview session.');
+        }
+    </script>
+</body>
+</html>

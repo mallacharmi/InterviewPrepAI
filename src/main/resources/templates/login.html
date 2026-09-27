@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Login')}"></head>
+<body>
+    <div th:replace="~{layout :: nav}"></div>
+    
+    <main class="container my-4">
+        <div class="card auth-card-login fade-in">
+            <div class="text-center mb-4">
+                <span class="auth-badge-login">Account Access</span>
+                <h2 style="font-weight: 700; color: var(--text); margin-top: 0.25rem;">Welcome Back</h2>
+                <p class="text-muted" style="font-size: 0.9rem;">Log in to continue your interview preparation</p>
+            </div>
+            
+            <div th:if="${param.error}" class="alert alert-error">
+                Invalid username or password. Please try again.
+            </div>
+            <div th:if="${param.logout}" class="alert alert-success">
+                You have been logged out successfully.
+            </div>
+            <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}">
+                Registration successful! Please login.
+            </div>
+            
+            <form th:action="@{/login}" method="post">
+                <div class="form-group">
+                    <label for="email" class="form-label">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-control" placeholder="user@example.com" autocomplete="username" required autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" autocomplete="current-password" required>
+                        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password', this)" title="Show / Hide Password" aria-label="Toggle password visibility">
+                            <svg class="eye-open" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                            <svg class="eye-closed is-hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block mt-4" style="font-weight: 600; padding: 0.85rem;">Log In to Dashboard</button>
+            </form>
+            
+            <div class="text-center mt-4" style="border-top: 1px solid var(--border); padding-top: 1rem;">
+                <span class="text-muted" style="font-size: 0.9rem;">Don't have an account?</span>
+                <a th:href="@{/register}" style="color: var(--primary); font-weight: 600; margin-left: 0.35rem;">Register Now</a>
+            </div>
+        </div>
+    </main>
+    
+    <div th:replace="~{layout :: footer}"></div>
+
+    <script>
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const eyeOpen = btn.querySelector('.eye-open');
+            const eyeClosed = btn.querySelector('.eye-closed');
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeOpen.classList.add('is-hidden');
+                eyeClosed.classList.remove('is-hidden');
+            } else {
+                input.type = 'password';
+                eyeOpen.classList.remove('is-hidden');
+                eyeClosed.classList.add('is-hidden');
+            }
+        }
+    </script>
+</body>
+</html>

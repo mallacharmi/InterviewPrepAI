@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!-- Head Fragment -->
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title} + ' - InterviewPrep AI'">InterviewPrep AI</title>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <script>
+        (function() {
+            const saved = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:src="@{/js/app.js}"></script>
+</head>
+
+<body>
+<!-- Navigation Fragment -->
+<nav class="navbar" th:fragment="nav">
+    <div class="container">
+        <a th:href="@{/}" class="navbar-brand">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            InterviewPrep AI
+        </a>
+        <div class="navbar-nav" sec:authorize="isAuthenticated()">
+            <a th:href="@{/dashboard}" class="nav-link" data-nav="dashboard">Dashboard</a>
+            <a th:href="@{/interviews/new}" class="nav-link" data-nav="new-interview">New Interview</a>
+            <a th:href="@{/ats}" class="nav-link" data-nav="ats">ATS Analyzer</a>
+            <a th:href="@{/interviews/history}" class="nav-link" data-nav="history">History</a>
+            <a th:href="@{/profile}" class="nav-link" data-nav="profile">Profile</a>
+            <div class="flex align-center gap-3 ml-4">
+                <a th:href="@{/profile}" class="nav-user-chip" title="View Profile">
+                    <span class="nav-avatar" sec:authentication="name" th:text="${#strings.substring(#authentication.name, 0, 1)}">U</span>
+                    <span sec:authentication="name" style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">User</span>
+                </a>
+                <form th:action="@{/logout}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-outline btn-sm" style="font-size: 0.82rem; padding: 0.3rem 0.75rem;">Logout</button>
+                </form>
+            </div>
+        </div>
+        <div class="navbar-nav" sec:authorize="!isAuthenticated()">
+            <a th:href="@{/login}" class="nav-link" data-nav="login">Login</a>
+            <a th:href="@{/register}" class="btn btn-primary" data-nav="register">Register</a>
+        </div>
+    </div>
+    <script>
+        (function() {
+            function updateActiveNavHighlight() {
+                try {
+                    const rawPath = window.location.pathname || '/';
+                    const path = rawPath.replace(/\/+$/, '') || '/';
+                    const navLinks = document.querySelectorAll('.navbar-nav .nav-link, .navbar-nav a.btn');
+                    
+                    let matched = null;
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        const href = (link.getAttribute('href') || '').replace(/\/+$/, '') || '/';
+                        
+                        if (path === href) {
+                            matched = link;
+                        } else if (href === '/dashboard' && (path === '' || path === '/')) {
+                            matched = link;
+                        } else if (href === '/interviews/new' && (path === '/interviews/setup' || path === '/interviews/new')) {
+                            matched = link;
+                        } else if (href === '/ats' && path.startsWith('/ats')) {
+                            matched = link;
+                        } else if (href === '/interviews/history' && path.startsWith('/interviews/history')) {
+                            matched = link;
+                        } else if (href === '/profile' && path.startsWith('/profile')) {
+                            matched = link;
+                        }
+                    });
+
+                    // Subpage fallbacks
+                    if (!matched) {
+                        if (path.includes('/report') || path.includes('/history')) {
+                            matched = document.querySelector('.navbar-nav a[data-nav="history"]') || document.querySelector('.navbar-nav a[href*="/history"]');
+                        } else if (path.startsWith('/interviews/')) {
+                            matched = document.querySelector('.navbar-nav a[data-nav="new-interview"]') || document.querySelector('.navbar-nav a[href*="/interviews/new"]');
+                        }
+                    }
+
+                    if (matched) {
+                        matched.classList.add('active');
+                    }
+                } catch (e) {
+                    console.warn('Nav highlight error:', e);
+                }
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', updateActiveNavHighlight);
+            } else {
+                updateActiveNavHighlight();
+            }
+        })();
+    </script>
+</nav>
+
+<!-- Footer Fragment -->
+<footer class="footer" th:fragment="footer">
+    <div class="container">
+        <p>AI Interview Preparation System &copy; 2024</p>
+    </div>
+
+    <!-- Floating Vertical Side Theme Toggle (Matches Reference Image) -->
+    <aside id="floatingThemeToggle" class="theme-dock-toggle" onclick="toggleTheme()" title="Switch Light/Dark Mode" aria-label="Toggle dark and light mode">
+        <div class="theme-dock-icon-wrapper" id="themeDockIconWrapper">
+            <!-- Sun Icon (visible in Light mode with soft coral/reddish container) -->
+            <svg class="theme-dock-icon theme-dock-sun" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <!-- Moon Icon (visible in Dark mode with soft indigo container) -->
+            <svg class="theme-dock-icon theme-dock-moon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </div>
+        <span class="theme-dock-text" id="themeDockText">Light</span>
+    </aside>
+    <script th:src="@{/js/app.js}"></script>
+</footer>
+
+</body>
+</html>

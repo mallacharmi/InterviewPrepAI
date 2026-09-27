@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Unified Floating AI Chatbot Widget Fragment -->
+<div th:fragment="chatWidget(contextType, contextId, targetRole)" 
+     id="ai-chat-widget-root"
+     th:data-context-type="${contextType}"
+     th:data-context-id="${contextId}"
+     th:data-target-role="${targetRole}">
+
+    <!-- Floating Trigger Button -->
+    <button id="chat-widget-toggle" type="button" class="chat-toggle-btn" title="Open AI Assistant" aria-label="Open AI Assistant">
+        <span class="chat-toggle-icon">💬</span>
+        <span class="chat-toggle-text" th:text="${contextType == 'PREP' ? 'Prep Coach' : (contextType == 'REVIEW' ? 'Review Tutor' : 'ATS Advisor')}">AI Assistant</span>
+    </button>
+
+    <!-- Chat Modal Window Container -->
+    <div id="chat-widget-card" class="chat-window-card" style="display: none;">
+        <!-- Header -->
+        <div class="chat-window-header">
+            <div class="chat-header-info">
+                <span class="chat-header-avatar">🤖</span>
+                <div>
+                    <h4 class="chat-header-title" th:text="${contextType == 'PREP' ? 'AI Interview Coach (Prep)' : (contextType == 'REVIEW' ? 'Session Performance Tutor' : 'ATS Resume Advisor')}">AI Assistant</h4>
+                    <span class="chat-header-status" th:text="${contextType == 'PREP' ? '✦ Concept Guidance & Tips' : (contextType == 'REVIEW' ? '✦ Scoped to Assessment Answers' : '✦ Keyword & Rewording Advisor')}">Online</span>
+                </div>
+            </div>
+            <div class="chat-header-actions" style="display: flex; align-items: center; gap: 6px;">
+                <button id="chat-widget-clear" type="button" class="chat-close-btn" title="Clear Chat History"
+                        th:style="${contextType == 'REVIEW'} ? 'display:none;' : 'display:inline-flex;'"
+                        style="font-size: 0.95rem; padding: 2px 6px;">🗑️</button>
+                <button id="chat-widget-close" type="button" class="chat-close-btn" title="Close Chat">&times;</button>
+            </div>
+        </div>
+
+        <!-- Messages Container -->
+        <div id="chat-widget-body" class="chat-window-body">
+            <!-- Dynamically populated via JS -->
+        </div>
+
+        <!-- Input Section -->
+        <div class="chat-window-footer">
+            <form id="chat-widget-form" onsubmit="event.preventDefault(); sendChatMessage();">
+                <input type="text" id="chat-widget-input" class="chat-input-field" placeholder="Ask a question..." autocomplete="off" />
+                <button type="submit" id="chat-widget-send" class="btn btn-primary chat-send-btn">
+                    <span>Send</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Include Chat Widget Script -->
+    <script th:src="@{/js/chat-widget.js}"></script>
+</div>
+
+</body>
+</html>

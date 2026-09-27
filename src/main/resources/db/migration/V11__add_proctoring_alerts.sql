@@ -1,0 +1,9 @@
+ALTER TABLE interviews ADD COLUMN tab_switch_count INT DEFAULT 0;
+ALTER TABLE interviews ADD COLUMN fullscreen_exit_count INT DEFAULT 0;
+ALTER TABLE interviews ADD COLUMN external_device_count INT DEFAULT 0;
+ALTER TABLE interviews ADD COLUMN no_face_detected_count INT DEFAULT 0;
+ALTER TABLE interviews ADD COLUMN eyes_closed_count INT DEFAULT 0;
+ALTER TABLE interviews ADD COLUMN head_turned_count INT DEFAULT 0;
+ALTER TABLE interviews ADD COLUMN gaze_off_screen_count INT DEFAULT 0;
+ALTER TABLE interviews ADD COLUMN multiple_faces_count INT DEFAULT 0;
+ALTER TABLE interviews ADD COLUMN face_mismatch_count INT DEFAULT 0;
